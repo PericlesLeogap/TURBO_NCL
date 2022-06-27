@@ -1,0 +1,184 @@
+﻿FUNCTION_BLOCK "FB_MOTOR_SEQUENCE_STARTER"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      i_bTurnOn : Bool;
+      i_bTurnOff : Bool;
+      i_iMaxTries : USInt;
+      i_tWatchDog : Time;
+      i_stcMotorData : Struct
+         aiMotorsSequence : Array[0..25] of Int;
+         abMotorOnConfimation : Array[0..25] of Bool;
+         abMotorOffConfimation : Array[0..25] of Bool;
+      END_STRUCT;
+   END_VAR
+
+   VAR_OUTPUT 
+      q_strStatus : String;
+      q_bBusy : Bool;
+      q_bError : Bool;
+      q_abMotorCommand : Array[0..25] of Bool;
+      q_ausiMotorTries : Array[0..25] of USInt;
+   END_VAR
+
+   VAR 
+      ls_rtrigOn {InstructionName := 'R_TRIG'; LibVersion := '1.0'; S7_SetPoint := 'False'} : R_TRIG;
+      ls_brtrigOn_CLK { S7_SetPoint := 'True'} : Bool;
+      ls_brtrigOn_Q { S7_SetPoint := 'True'} : Bool;
+      ls_rtrigOff {InstructionName := 'R_TRIG'; LibVersion := '1.0'; S7_SetPoint := 'False'} : R_TRIG;
+      ls_brtrigOff_CLK : Bool;
+      ls_brtrigOff_Q : Bool;
+      ls_iStep1 : Int;
+      ls_iPointer1 : Int;
+      ls_iIteration1 : Int;
+      ls_tonWatchdog {InstructionName := 'TON_TIME'; LibVersion := '1.0'; S7_SetPoint := 'False'} : TON_TIME;
+      ls_btonWatchdog_IN { S7_SetPoint := 'True'} : Bool;
+      ls_btonWatchdog_Q { S7_SetPoint := 'True'} : Bool;
+      ls_bRetry : Bool;
+   END_VAR
+
+
+BEGIN
+	(****************************************************************************
+	Probat Leogap// (c)Copyright (2022)
+	-----------------------------------------------------------------------------
+	Library: 
+	Tested with: TIA Portal (V17)
+	Engineering: TIA Portal (V17)
+	Restrictions: none
+	Requirements: none
+	Functionality: Turning motors on and off given a sequence
+	-----------------------------------------------------------------------------
+	Change log table:
+	Version Date Expert in charge Changes applied
+	01.00.00 15.06.2022 (Péricles Rialto) Basic funcionallity and logic
+	****************************************************************************)
+	REGION Call functions
+	    //Motor on trigger
+	    #ls_rtrigOn(CLK := #ls_brtrigOn_CLK,
+	                Q => #ls_brtrigOn_Q);
+	    //Motor off trigger
+	    #ls_rtrigOff(CLK := #ls_brtrigOff_CLK,
+	                Q => #ls_brtrigOff_Q);
+	    //Watchdog timer
+	    #ls_tonWatchdog(IN := #ls_btonWatchdog_IN,
+	                    PT := #i_tWatchDog,
+	                    Q => #ls_btonWatchdog_Q);
+	END_REGION
+	
+	REGION Starts motors in sequence
+	    CASE #ls_iStep1 OF
+	        0:  
+	            REGION Waiting for system trigger
+	                #q_strStatus := 'System Idle';
+	                #ls_brtrigOn_CLK := #i_bTurnOn;
+	                #ls_brtrigOff_CLK := #i_bTurnOff;
+	                //Reinitiates tries array
+	                IF #ls_brtrigOn_Q OR
+	                    #ls_brtrigOff_Q THEN
+	                    FOR #ls_iIteration1 := 1 TO 25 DO
+	                        #q_ausiMotorTries[#ls_iIteration1] := 0;
+	                    END_FOR;
+	                END_IF;
+	                //Moves the state machine given an input
+	                IF #ls_brtrigOn_Q AND
+	                    NOT #ls_brtrigOff_Q THEN
+	                    #ls_iPointer1 := 1;
+	                    #ls_iStep1 := 1;
+	                ELSIF NOT #ls_brtrigOn_Q AND
+	                    #ls_brtrigOff_Q THEN
+	                    #ls_iStep1 := 2;
+	                ELSIF #ls_brtrigOn_Q AND
+	                    #ls_brtrigOff_Q THEN
+	                    #ls_iStep1 := 3;
+	                END_IF;
+	            END_REGION
+	        1: 
+	            REGION Turn motor on in the given sequence
+	                #q_strStatus := 'Motor On Sequence';
+	                #ls_btonWatchdog_IN := TRUE;
+	                #q_abMotorCommand[#ls_iPointer1] := True;
+	                
+	                //Recives the confirmation that the motor is on
+	                IF #i_stcMotorData.abMotorOnConfimation[#ls_iPointer1] AND
+	                    NOT #i_stcMotorData.abMotorOffConfimation[#ls_iPointer1] THEN
+	                    #ls_btonWatchdog_IN := FALSE;
+	                    #ls_iPointer1 := #ls_iPointer1 + 1;
+	                END_IF;
+	                
+	                //Register the number of turning on tries
+	                IF #ls_btonWatchdog_Q THEN
+	                    #q_ausiMotorTries[#ls_iPointer1] := #q_ausiMotorTries[#ls_iPointer1] + 1;
+	                    #ls_bRetry := TRUE;
+	                    #ls_btonWatchdog_IN := FALSE;
+	                    IF #q_ausiMotorTries[#ls_iPointer1] >= #i_iMaxTries THEN
+	                        #ls_iPointer1 := 1;
+	                        #ls_iStep1 := 0;
+	                    ELSE
+	                        #ls_iPointer1 := #ls_iPointer1 + 1;
+	                    END_IF;
+	                END_IF;
+	                
+	                //Confition for when the end of the list is reached
+	                IF #i_stcMotorData.aiMotorsSequence[#ls_iPointer1] = 0 AND
+	                    NOT #ls_bRetry THEN
+	                    #ls_iPointer1 := 1;
+	                    #ls_bRetry := FALSE;
+	                    #ls_iStep1 := 0;
+	                ELSIF #i_stcMotorData.aiMotorsSequence[#ls_iPointer1] = 0 AND
+	                    #ls_bRetry THEN
+	                    #ls_iPointer1 := 1;
+	                    #ls_bRetry := FALSE;
+	                END_IF;
+	            END_REGION
+	        2:  
+	            REGION Turn motor off in the given sequence
+	                #q_strStatus := 'Motor off Sequence';
+	                #ls_btonWatchdog_IN := TRUE;
+	                #q_abMotorCommand[#ls_iPointer1] := FALSE;
+	                
+	                //Recives the confirmation that the motor is off
+	                IF NOT #i_stcMotorData.abMotorOnConfimation[#ls_iPointer1] AND
+	                    #i_stcMotorData.abMotorOffConfimation[#ls_iPointer1] THEN
+	                    #ls_btonWatchdog_IN := FALSE;
+	                    #ls_iPointer1 := #ls_iPointer1 + 1;
+	                END_IF;
+	                
+	                //Register the number of turning on tries
+	                IF #ls_btonWatchdog_Q THEN
+	                    #q_ausiMotorTries[#ls_iPointer1] := #q_ausiMotorTries[#ls_iPointer1] + 1;
+	                    #ls_btonWatchdog_IN := FALSE;
+	                    IF #q_ausiMotorTries[#ls_iPointer1] >= #i_iMaxTries THEN
+	                        #ls_iPointer1 := 1;
+	                        #ls_iStep1 := 0;
+	                    ELSE
+	                        #ls_iPointer1 := #ls_iPointer1 + 1;
+	                    END_IF;
+	                END_IF;
+	                
+	                //Confition for when the end of the list is reached
+	                IF #i_stcMotorData.aiMotorsSequence[#ls_iPointer1] = 0 AND
+	                    NOT #ls_bRetry THEN
+	                    #ls_iPointer1 := 1;
+	                    #ls_bRetry := FALSE;
+	                    #ls_iStep1 := 0;
+	                ELSIF #i_stcMotorData.aiMotorsSequence[#ls_iPointer1] = 0 AND
+	                    #ls_bRetry THEN
+	                    #ls_iPointer1 := 1;
+	                    #ls_bRetry := FALSE;
+	                END_IF;
+	            END_REGION
+	        3:
+	            REGION System Input Error
+	                #q_strStatus := 'Invalid Input';
+	                IF (#ls_brtrigOn_Q AND
+	                    NOT #ls_brtrigOff_Q) OR
+	                    (NOT #ls_brtrigOn_Q AND
+	                    #ls_brtrigOff_Q) THEN
+	                    #ls_iStep1 := 0;
+	                END_IF;
+	            END_REGION
+	    END_CASE;
+	END_REGION
+END_FUNCTION_BLOCK
+

@@ -1,0 +1,279 @@
+﻿FUNCTION_BLOCK "FB_DUMPER"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      MODO_OP_SUP { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;   // 1 = Habilita Modo de operação via Supervisório Manual/Automático
+      AUTO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Pulso Seleciona Modo de Operação Automático
+      MANUAL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Pulso Seleciona Modo de Operação Manual
+      INTER_AUTO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;   // 0 = Intertravamento Ativo Modo Automático
+      INTER_MAN { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;   // 0 = Intertravamento Ativo em Modo Manual
+      SP_AUTO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 0.0;   // Setpoint Automático Válvula
+      SP_MAN { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 0.0;   // Setpoint Manual Válvula
+      SP_INTER { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Setpoint Válvula Intertravada
+      HI_LIM { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 100.0;   // Escala Superior
+      LO_LIM { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Escala Inferior
+      SEL_PV { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Seleciona PV  1= Externo/ 0= Interno
+      SEL_ANA { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // Seleciona Cartão analógica 0=Siemens 1=Wago 2=Bosch
+      PV { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // Variável de processo ( se SEL_PV = 1 )
+      SEL_FC_ABERTO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Seleciona Fim de Cuso de Aberto
+      FC_ABERTO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Fim de Curso Aberto
+      SEL_FC_FECHADO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Seleciona Fim de Cuso de Fechado
+      FC_FECHADO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Fim de Curso Fechado
+      INV_VAL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Inverte Válvula 1 =  Normal Aberta/ 0 = Normal Fechada
+      RESTART { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Restart Cpu
+      INSTANCE { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : String[20];   // Db instance
+   END_VAR
+
+   VAR_OUTPUT 
+      OUT { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // Saída Escalada para Válvula
+      PV_VAL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Indicação Abertura da Válvula
+      STW_VAL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // Palavra de Status da Válvula
+      OPEN { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Indicação Válvula Aberta
+      OPENED { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Indicação Válvula Totalmente Aberta
+      CLOSE { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Indicação Válvula Fechada
+      CLOSED { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Indicação Válvula Totalmente Fechada
+      Q_AUTO_MAN { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Modo de operação em Automático = 1 Manual = 0
+   END_VAR
+
+   VAR 
+      HmiData : "pdt_V_Control";   // Data Type HMI
+      M_AUTO_MAN { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Interno Modo de operação em Automático = 1 Manual = 0
+      M_OPEN { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Interno Indicação Válvula Aberta
+      M_OPENED { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Interno Indicação Válvula Totalmente Aberta
+      M_CLOSE { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Interno Indicação Válvula Fechada
+      M_CLOSED { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Interno Indicação Válvula Totalmente Fechada
+      M_PV_VAL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Interno Indicação Abertura da Válvula
+      SP_ESCALADO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Interno Setpoint Escalado
+      SP_SEL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Interno Setpoint Selecionado
+   END_VAR
+
+   VAR_TEMP 
+      K1 : Real;   // Interno Limite Escala Inferior
+      K2 : Real;   // Interno Limite Escala Superior
+   END_VAR
+
+
+BEGIN
+	
+	#HmiData.QdwStatus.%X2 := FALSE;(********************************
+	#RESTART Cpu
+	*********************************)
+	IF #RESTART THEN
+	    #HmiData.Op_Dw_Cmd := 0;
+	    #OUT := 0;
+	ELSE
+	    
+	    // Cpu em Operação
+	    
+	(******************************************
+	 Network 1: Modo de Operação Manual/Automático
+	 Variável: OPdwCmd  Bit:  16  =  Manual
+	 Variável: OPdwCmd  Bit:  17  =  Automático
+	*******************************************)
+	    IF (#AUTO) OR (#HmiData.Op_Dw_Cmd.%X17 = TRUE AND #MODO_OP_SUP = TRUE) THEN
+	        #M_AUTO_MAN := TRUE;
+	    ELSIF (#MANUAL) OR (#HmiData.Op_Dw_Cmd.%X16 = TRUE AND #MODO_OP_SUP = TRUE) THEN
+	        #M_AUTO_MAN := FALSE;
+	    END_IF;
+	    
+	(*****************************************************************
+	  Network 2: Escala Cartão Selecionado
+	******************************************************************)
+	    
+	    //Seleciona Valores Para Cartão Siemens    
+	    IF #SEL_ANA = 0 THEN
+	        #K1 := 0.0;
+	        #K2 := 27648.0;
+	    END_IF;
+	    //Seleciona Valores Para Cartão WAGO    
+	    IF #SEL_ANA = 1 THEN
+	        #K1 := 0.0;
+	        #K2 := 32767.0;
+	    END_IF;
+	    //Seleciona Valores Para Cartão BOSCH    
+	    IF #SEL_ANA = 2 THEN
+	        #K1 := 0.0;
+	        #K2 := 65535.0;
+	    END_IF;
+	    
+	(*****************************************************************
+	  Network 3: Seleciona Setpoint Manual/Automático
+	******************************************************************)
+	    IF #M_AUTO_MAN = TRUE THEN
+	        IF #INTER_AUTO = TRUE THEN
+	            #SP_SEL := #SP_AUTO;
+	        ELSE
+	            #SP_SEL := #SP_INTER;
+	        END_IF;
+	    ELSE
+	        IF #INTER_MAN = TRUE THEN
+	            #SP_SEL := #SP_MAN;
+	        ELSE
+	            #SP_SEL := #SP_INTER;
+	        END_IF;
+	    END_IF;
+	    
+	(*****************************************************************
+	  Network 4: Inverte Válvula e Indicação PV
+	******************************************************************)
+	    IF #INV_VAL = TRUE THEN
+	        #SP_SEL := (#HI_LIM - #SP_SEL);
+	        IF #SEL_PV = FALSE THEN
+	            #M_PV_VAL := (#HI_LIM - #SP_SEL);
+	        ELSE
+	            #M_PV_VAL := ((INT_TO_REAL(#PV) - #K1) / (#K2 - #K1) * (#HI_LIM - #LO_LIM)) + #LO_LIM;
+	        END_IF;
+	    ELSE
+	        #SP_SEL := #SP_SEL;
+	        IF #SEL_PV = FALSE THEN
+	            #M_PV_VAL := #SP_SEL;
+	        ELSE
+	            #M_PV_VAL := ((INT_TO_REAL(#PV) - #K1) / (#K2 - #K1) * (#HI_LIM - #LO_LIM)) + #LO_LIM;
+	        END_IF;
+	    END_IF;
+	    
+	(*****************************************************************
+	  Network 5: Escala Setpoint para Válvula
+	******************************************************************)
+	    #SP_ESCALADO := ((((#SP_SEL - #LO_LIM) / (#HI_LIM - #LO_LIM)) * (#K2 - #K1)) + #K1);
+	    
+	(*****************************************************************
+	  Network 6: Converte Sáida para Válvula
+	******************************************************************)
+	    #OUT := DINT_TO_INT(REAL_TO_DINT(#SP_ESCALADO));
+	    
+	(*****************************************************************
+	 Network 7: Status Válvula
+	******************************************************************)
+	//VÁLVULA TOTALMENTE ABERTA EM AUTOMATICO    
+	IF (#M_AUTO_MAN = TRUE AND #INTER_AUTO = TRUE AND (#M_PV_VAL >= (#HI_LIM)) AND #SEL_FC_ABERTO = FALSE) OR
+	    (#M_AUTO_MAN = TRUE AND #INTER_AUTO = TRUE AND (#M_PV_VAL >= (#HI_LIM)) AND #SEL_FC_ABERTO = TRUE AND #FC_ABERTO = TRUE) THEN
+	    #HmiData.Stw_Val := 1;
+	    #M_OPEN := TRUE;
+	    #M_OPENED := TRUE;
+	    #M_CLOSE := FALSE;
+	    #M_CLOSED := FALSE;
+	    //VÁLVULA ABERTA EM AUTOMATICO    
+	ELSIF #M_AUTO_MAN = TRUE AND #INTER_AUTO = TRUE AND (#M_PV_VAL >= (#HI_LIM * 0.05)) AND (#M_PV_VAL < (#HI_LIM)) THEN
+	    #HmiData.Stw_Val := 1;
+	    #M_OPEN := TRUE;
+	    #M_OPENED := FALSE;
+	    #M_CLOSE := FALSE;
+	    #M_CLOSED := FALSE;
+	    //VÁLVULA TOTALMENTE FECHADA EM AUTOMATICO    
+	ELSIF (#M_AUTO_MAN = TRUE AND #INTER_AUTO = TRUE AND (#M_PV_VAL = (#LO_LIM)) AND #SEL_FC_FECHADO = FALSE) OR
+	    (#M_AUTO_MAN = TRUE AND #INTER_AUTO = TRUE AND (#M_PV_VAL = (#LO_LIM)) AND #SEL_FC_FECHADO = TRUE AND #FC_FECHADO = TRUE) THEN
+	    #HmiData.Stw_Val := 2;
+	    #M_OPEN := FALSE;
+	    #M_OPENED := FALSE;
+	    #M_CLOSE := TRUE;
+	    #M_CLOSED := TRUE;
+	    //VÁLVULA FECHADA EM AUTOMATICO        
+	ELSIF #M_AUTO_MAN = TRUE AND #INTER_AUTO = TRUE AND (#M_PV_VAL < (#HI_LIM * 0.05)) AND (#M_PV_VAL > (#LO_LIM)) THEN
+	    #HmiData.Stw_Val := 2;
+	    #M_OPEN := FALSE;
+	    #M_OPENED := FALSE;
+	    #M_CLOSE := TRUE;
+	    #M_CLOSED := FALSE;
+	    //VÁLVULA TOTALMENTE ABERTA EM MANUAL    
+	ELSIF (#M_AUTO_MAN = FALSE AND #INTER_MAN = TRUE AND (#M_PV_VAL >= (#HI_LIM)) AND #SEL_FC_ABERTO = FALSE) OR
+	    (#M_AUTO_MAN = FALSE AND #INTER_MAN = TRUE AND (#M_PV_VAL >= (#HI_LIM)) AND #SEL_FC_ABERTO = TRUE AND #FC_ABERTO = TRUE) THEN
+	    #HmiData.Stw_Val := 3;
+	    #M_OPEN := TRUE;
+	    #M_OPENED := TRUE;
+	    #M_CLOSE := FALSE;
+	    #M_CLOSED := FALSE;
+	    //VÁLVULA ABERTA EM MANUAL        
+	ELSIF #M_AUTO_MAN = FALSE AND #INTER_MAN = TRUE AND (#M_PV_VAL >= (#HI_LIM * 0.05)) AND (#M_PV_VAL < (#HI_LIM)) THEN
+	    #HmiData.Stw_Val := 3;
+	    #M_OPEN := TRUE;
+	    #M_OPENED := FALSE;
+	    #M_CLOSE := FALSE;
+	    #M_CLOSED := FALSE;
+	    //VÁLVULA TOTALMENTE FECHADA EM AUTOMATICO    
+	ELSIF (#M_AUTO_MAN = FALSE AND #INTER_MAN = TRUE AND (#M_PV_VAL = (#LO_LIM)) AND #SEL_FC_FECHADO = FALSE) OR
+	    (#M_AUTO_MAN = TRUE AND #INTER_AUTO = TRUE AND (#M_PV_VAL = (#LO_LIM)) AND #SEL_FC_FECHADO = TRUE AND #FC_FECHADO = TRUE) THEN
+	    #HmiData.Stw_Val := 4;
+	    #M_OPEN := FALSE;
+	    #M_OPENED := FALSE;
+	    #M_CLOSE := TRUE;
+	    #M_CLOSED := TRUE;
+	    //VÁLVULA FECHADA EM MANUAL
+	ELSIF #M_AUTO_MAN = FALSE AND #INTER_MAN = TRUE AND (#M_PV_VAL < (#HI_LIM * 0.05)) AND (#M_PV_VAL > (#LO_LIM)) THEN
+	    #HmiData.Stw_Val := 4;
+	    #M_OPEN := FALSE;
+	    #M_OPENED := FALSE;
+	    #M_CLOSE := TRUE;
+	    #M_CLOSED := FALSE;
+	    //VÁLVULA INTERTRAVADA EM AUTOMÁTICO
+	ELSIF #M_AUTO_MAN = TRUE AND #INTER_AUTO = FALSE THEN
+	    #HmiData.Stw_Val := 5;
+	    #M_OPEN := FALSE;
+	    #M_CLOSE := TRUE;
+	    //VÁLVULA INTERTRAVADA EM MANUAL
+	ELSIF #M_AUTO_MAN = FALSE AND #INTER_MAN = FALSE THEN
+	    #HmiData.Stw_Val := 6;
+	    #M_OPEN := FALSE;
+	    #M_CLOSE := TRUE;
+	ELSE
+	    #HmiData.Stw_Val := 0;
+	END_IF;
+	
+	(*****************************************************************
+	  Network 8: Escreve Memorias Internas Para Saída
+	******************************************************************)
+	#Q_AUTO_MAN := #M_AUTO_MAN;
+	#PV_VAL := #M_PV_VAL;
+	#STW_VAL := #HmiData.Stw_Val;
+	#OPEN := #M_OPEN;
+	#OPENED := #M_OPENED;
+	#CLOSE := #M_CLOSE;
+	#CLOSED := #M_CLOSED;
+	
+	(**********************************************
+	 Network 9: Status Bit IHM
+	***********************************************)
+	#HmiData.Pv_Val := #PV_VAL;
+	
+	#HmiData.QdwStatus.%X0 := #MODO_OP_SUP;
+	#HmiData.QdwStatus.%X1 := FALSE;
+	#HmiData.QdwStatus.%X3 := FALSE;
+	#HmiData.QdwStatus.%X4 := FALSE;
+	#HmiData.QdwStatus.%X5 := FALSE;
+	#HmiData.QdwStatus.%X6 := FALSE;
+	#HmiData.QdwStatus.%X7 := FALSE;
+	#HmiData.QdwStatus.%X8 := FALSE;
+	#HmiData.QdwStatus.%X9 := FALSE;
+	#HmiData.QdwStatus.%X10 := #M_AUTO_MAN;
+	#HmiData.QdwStatus.%X11 := #M_OPEN OR #M_OPENED;
+	#HmiData.QdwStatus.%X12 := #M_CLOSE OR #M_CLOSED;
+	#HmiData.QdwStatus.%X13 := FALSE;
+	#HmiData.QdwStatus.%X14 := FALSE;
+	#HmiData.QdwStatus.%X15 := FALSE;
+	#HmiData.QdwStatus.%X16 := FALSE;
+	#HmiData.QdwStatus.%X17 := FALSE;
+	#HmiData.QdwStatus.%X18 := (#M_AUTO_MAN = TRUE AND #INTER_AUTO) OR (#M_AUTO_MAN = FALSE AND #INTER_MAN);
+	#HmiData.QdwStatus.%X19 := FALSE;
+	#HmiData.QdwStatus.%X20 := FALSE;
+	#HmiData.QdwStatus.%X21 := FALSE;
+	#HmiData.QdwStatus.%X22 := FALSE;
+	#HmiData.QdwStatus.%X23 := FALSE;
+	#HmiData.QdwStatus.%X24 := FALSE;
+	#HmiData.QdwStatus.%X25 := FALSE;
+	#HmiData.QdwStatus.%X26 := FALSE;
+	#HmiData.QdwStatus.%X27 := FALSE;
+	#HmiData.QdwStatus.%X28 := FALSE;
+	#HmiData.QdwStatus.%X29 := FALSE;
+	#HmiData.QdwStatus.%X30 := FALSE;
+	#HmiData.QdwStatus.%X31 := FALSE;
+	
+	(**************************************************
+	 Network 10: Reset Palavra de Comando Supervisório
+	***************************************************)
+	IF #HmiData.Op_Dw_Cmd <> 0 THEN
+	    #HmiData.Op_Dw_Cmd := 0;
+	END_IF;
+	END_IF;
+	
+END_FUNCTION_BLOCK
+

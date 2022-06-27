@@ -1,0 +1,34 @@
+﻿FUNCTION_BLOCK "FB_FILTRO"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      IN { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
+      T { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 1.0;
+   END_VAR
+
+   VAR_OUTPUT 
+      OUT { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
+      T_ERROR { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+   END_VAR
+
+   VAR 
+      LastPV { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
+   END_VAR
+
+   VAR_TEMP 
+      ExpRate : Real;
+   END_VAR
+
+
+BEGIN
+	IF #T = 0.0 THEN                   
+	    #T_ERROR := true;                                
+	ELSE
+	    #T_ERROR := false;                                   
+	    #ExpRate := EXP(-0.1 / #T);
+	    #OUT := #LastPV * #ExpRate + (#IN * (1 - #ExpRate)); 
+	    #LastPV := #OUT;      
+	END_IF;
+	
+END_FUNCTION_BLOCK
+

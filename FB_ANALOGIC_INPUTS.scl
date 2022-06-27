@@ -1,0 +1,772 @@
+﻿FUNCTION_BLOCK "FB_ANALOGIC_INPUTS"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      MODO_OP_SUP { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;   // Modo de Operação Entrada Bloco = 0/ Supervisório = 1
+      MODO_SIM_SUP { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // 1 = Habilita Modo Simulação Via Supervisório
+      SIM_ON { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // 1 = Ativa Modo de Simulação
+      SEL_IN { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Seleciona Entrada IN_INT = 0/ IN_REAL = 1
+      IN_INT { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // Entrada periferia
+      IN_REAL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Entrada Real
+      HI_LIM { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Escala Superior
+      LO_LIM { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Escala Inferior
+      SEL_ANA { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // Seleciona Cartão analógica 0=Siemens 1=Wago 2=Bosch
+      SEL_TERM { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Seleciona Cartão analógica 0=Siemens - Wago - Bosch 1=Termopar
+      HAB_A_HH { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Habilita Alarme Muito Alto
+      LIM_A_HH { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Limite Alarme Muito Alto
+      HAB_A_H { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Habilita Alarme Alto
+      LIM_A_H { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Limite Alarme Alto
+      HAB_A_L { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Habilita Alarme Baixo
+      LIM_A_L { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Limite Alarme Baixo
+      HAB_A_LL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Habilita Alarme Muito Baixo
+      LIM_A_LL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Limite Alarme Muito Baixo
+      TP_FILTRO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 1.0;   // Tempo de Filtro
+      BIPOLAR { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Seleciona Unipolar = 0 / Bipolar = 1
+      LIM_HYS_SET { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Limite Hysteresis = 0 Percentagem/ 1 =Absoluto
+      LIM_HYS { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 1.0;   // Limite de Hysteresis
+      HAB_ALARME { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;   // Habilita Alarmes
+      TP_ALARME { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 10.0;   // Tempo Para Gerar Alarmes
+      TEXTO_ALARME { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : String[80];   // Texto para Alarme e Eventos
+      AREA_ALARME { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : String[20];   // Texto para Filtrar Alarmes da Area
+      RESTART { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Restart Cpu
+      UNIT { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : String[10];   // Unidade de Engenharia
+      INSTANCE { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : String[20];   // DB Instance
+   END_VAR
+
+   VAR_OUTPUT 
+      OUT { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Saída Escalada Transmissor
+      OUT_HI_LIM { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Saída Escala Superior
+      OUT_LO_LIM { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Saída Escala Inferior
+      OUT_LIM_HYS { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Saída Limite Hysteresis
+      OUT_LIM_A_HH { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Saída Limite Alarme Muito Alto
+      OUT_LIM_A_H { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Saída Limite Alarme Alto
+      OUT_LIM_A_L { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Saída Limite Alarme Baixo
+      OUT_LIM_A_LL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Saída Limite Alarme Muito Baixo
+      Q_HAB_A_HH { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Saída Habilita Alarme Muito Alto
+      Q_HAB_A_H { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Saída Habilita Alarme Alto
+      Q_HAB_A_L { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Saída Habilita Alarme Baixo
+      Q_HAB_A_LL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Saída Habilita Alarme Muito Baixo
+      Q_A_HH { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Alarme Muito ALto Ativo = 1
+      Q_A_H { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Alarme Alto Ativo = 1
+      Q_A_L { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Alarme Baixo Ativo = 1
+      Q_A_LL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Alarme Muito Baixo Ativo = 1
+      Q_SIM_ON { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Modo de Simulação Ativo = 1
+      Q_HYS_SET { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Saída Modo Limite Hysteresis Percentual = 0 Absoluto = 1
+      Q_SEL_IN { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Saída Modo Periferia = 0 Real valor =1
+      Q_FALHA { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Falha Ativa = 1
+      Q_CURTO_CIRC { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Falha Canal em Curto
+      Q_A_HI_RANGE { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Alarme Range Alto
+      Q_A_LO_RANGE { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Alarme Range Baixo
+      Q_CANAL_ABERTO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Falha Canal Aberto
+   END_VAR
+
+   VAR_IN_OUT 
+      IN_SIM { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Valor Modo Simulação
+   END_VAR
+
+   VAR RETAIN
+      HmiData : "pdt_Ana_In";
+   END_VAR
+   VAR 
+      M_OUT { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Interno Valor Saída Escalada
+      M_HI_LIM { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Interno Escala Superior
+      M_LO_LIM { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Interno Escala Inferior
+      M_LIM_HYS { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Interno Limite Hysteresis
+      M_LIM_A_HH { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Interno Limite Alarme Muito Alto
+      M_LIM_A_H { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Interno Limite Alarme Alto
+      M_LIM_A_L { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Interno Limite Alarme Baixo
+      M_LIM_A_LL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Interno Limite Alarme Muito Baixo
+      M_IN_SIM { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Interno Valor Simulação
+      M_SEL_IN { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Interno Indicação Modo Periferia / Real valor
+      M_HAB_A_HH { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'True'} : Bool := FALSE;   // Interno Habilita Alarme Muito Alto
+      M_HAB_A_H { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'True'} : Bool := FALSE;   // Interno Habilita Alarme Alto
+      M_HAB_A_L { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'True'} : Bool := FALSE;   // Interno Habilita Alarme Baixo
+      M_HAB_A_LL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'True'} : Bool := FALSE;   // Interno Habilita Alarme Muito Baixo
+      COND_HAB_A_HH { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Condição Habilita Alarme Muito Alto
+      COND_HAB_A_H { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Condição Habilita Alarme Alto
+      COND_HAB_A_L { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Condição Habilita Alarme Baixo
+      COND_HAB_A_LL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Condição Habilita Alarme Muito Baixo
+      M_A_HH { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Interno Alarme Muito ALto Ativo
+      M_A_H { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Interno Alarme Alto Ativo
+      M_A_L { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Interno Alarme Baixo Ativo
+      M_A_LL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Interno Alarme Muito Baixo Ativo
+      M_SIM_ON { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Interno Indicação Simulação Ativa
+      M_HYS_SET { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Interno Limite Hysteresis = 0 Percentagem/ 1 =Absoluto
+      M_FALHA { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Interno Falha Ativa
+      M_CURTO_CIRC { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Interno Curto Circuito Canal
+      M_A_HI_RANGE { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Interno Falha Range Superior
+      M_A_LO_RANGE { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Interno Falha Range Inferior
+      M_CANAL_ABERTO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Interno Falha Fio quebrado
+      TON_ALARME {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;   // Tempo para Gerar Alarme
+      FILTRO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "FB_FILTRO";   // Filtro Entrada Analógica
+      Evento_Hab_Alm_HH {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Habilita/Desabilita Alarme HH
+      Evento_Hab_Alm_H {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Habilita/Desabilita Alarme H
+      Evento_Hab_Alm_L {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Habilita/Desabilita Alarme L
+      Evento_Hab_Alm_LL {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Habilita/Desabilita Alarme LL
+      Evento_Simulacao {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Simulação Habilita/Desabilita
+      Evento_Hysterese {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Hysterese Percentual/Absoluto
+      Evento_Sp_Alm_HH {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Setpoint Alarme HH
+      Evento_Sp_Alm_H {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Setpoint Alarme H
+      Evento_Sp_Alm_L {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Setpoint Alarme L
+      Evento_Sp_Alm_LL {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Setpoint Alarme LL
+      Evento_Sp_Hysterese {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Setpoint Hysterese
+      Evento_Sp_Simulacao {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Setpoint Simulação
+      Evento_Sp_Hi_Lim {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Escala Superior
+      Evento_Sp_Lo_Lim {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Escala Inferior
+      Alarme_HH {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Alarme Muito Alto
+      Alarme_H {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Alarme Alto
+      Alarme_L {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Alarme Baixo
+      Alarme_LL {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Alarme Muito Baixo
+      Falha_Curto_Canal {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Falha Curto Circuito Canal Anlógico
+      Falha_Canal_Aberto {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Falha Canal Anlógico Aberto
+   END_VAR
+   VAR RETAIN
+      Op_Sp_Alm_HH_Ult_Valor { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Setpoint Alarme Muito Alto Ultimo Valor
+      Op_Sp_Alm_H_Ult_Valor { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Setpoint Alarme Alto Ultimo Valor
+      Op_Sp_Alm_L_Ult_Valor { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Setpoint Alarme Baixo Ultimo Valor
+      Op_Sp_Alm_LL_Ult_Valor { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Setpoint Alarme Muito Baixo Ultimo Valor
+      Op_Sp_Hysterese_Ult_Valor { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Setpoint Hysterese Ultimo Valor
+      Op_Sp_Simulacao_Ult_Valor { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Setpoint Simulação Ultimo Valor
+      Op_Sp_Hi_Lim_Ult_Valor { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Setpoint Escala Superior Ultimo Valor
+      Op_Sp_Lo_Lim_Ult_Valor { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Setpoint Escala Inferior Ultimo Valor
+   END_VAR
+   VAR 
+      Unit_Sp_Hyst { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : String[10];   // Undidade Setpoint de Hysterese
+   END_VAR
+
+   VAR_TEMP 
+      K1 : Real;   // Auxiliar Cálculo Conversão Entrada Analógica
+      K2 : Real;   // Auxiliar Cálculo Conversão Entrada Analógica
+   END_VAR
+
+
+BEGIN
+	(********************************
+	           Restart Cpu
+	*********************************)
+	IF #RESTART THEN
+	    #HmiData.Op_Dw_Cmd := 0;
+	ELSE
+	    
+	    // Cpu em Operação
+	    
+	(******************************************
+	  Network 1: Escreve Variaveis de Entrada 
+	  Para Memorias Internas  
+	*******************************************)
+	    #M_HI_LIM := #HI_LIM;
+	    #M_LO_LIM := #LO_LIM;
+	    #M_LIM_A_HH := #LIM_A_HH;
+	    #M_LIM_A_H := #LIM_A_H;
+	    #M_LIM_A_L := #LIM_A_L;
+	    #M_LIM_A_LL := #LIM_A_LL;
+	    #M_IN_SIM := LIMIT(MN:=#M_LO_LIM, IN:=#IN_SIM , MX:=#M_HI_LIM);
+	    
+	(******************************************
+	  Network 2: Calcula Hysteresis valor
+	*******************************************)    
+	    IF #M_HYS_SET = TRUE THEN
+	        #M_LIM_HYS := #LIM_HYS;
+	    ELSE
+	        #M_LIM_HYS := #LIM_HYS * ((#M_HI_LIM - #M_LO_LIM) / 100);
+	    END_IF;
+	    
+	    IF #M_SIM_ON = FALSE THEN
+	        #IN_SIM := #M_OUT;
+	    END_IF;
+	    
+	(******************************************
+	  Network 3: Simulação On/Off
+	  Variável: OPdwCmd  Bit:  20  =  Processo
+	  Variável: OPdwCmd  Bit:  21  =  Simulação
+	*******************************************)
+	    IF (#MODO_SIM_SUP = FALSE AND #SIM_ON = TRUE) OR (#HmiData.Op_Dw_Cmd.%X21 = TRUE AND #MODO_SIM_SUP = TRUE) THEN
+	        #M_SIM_ON := TRUE;
+	    ELSIF (#MODO_SIM_SUP = FALSE AND #SIM_ON = FALSE) OR (#HmiData.Op_Dw_Cmd.%X20 = TRUE AND #MODO_SIM_SUP = TRUE) THEN
+	        #M_SIM_ON := FALSE;
+	    END_IF;
+	
+	(******************************************
+	  Network 4: Modo Limite Hysteresis
+	  Variável: OPdwCmd  Bit:  12  =  Hysteresis Percentual
+	  Variável: OPdwCmd  Bit:  13  =  Hysteresis Absoluto
+	*******************************************)    
+	    IF (#MODO_OP_SUP = FALSE AND #LIM_HYS_SET = TRUE) OR (#HmiData.Op_Dw_Cmd.%X13 = TRUE AND #MODO_OP_SUP = TRUE) THEN
+	        #M_HYS_SET := TRUE;
+	    ELSIF (#MODO_OP_SUP = FALSE AND #LIM_HYS_SET = FALSE) OR (#HmiData.Op_Dw_Cmd.%X12 = TRUE AND #MODO_OP_SUP = TRUE) THEN
+	        #M_HYS_SET := FALSE;
+	    END_IF;
+	   
+	(******************************************
+	  Network 5: Modo Periferia / Real valor
+	  Variável: OPdwCmd  Bit:  14  =  Periferia
+	  Variável: OPdwCmd  Bit:  15  =  Real valor
+	*******************************************)    
+	    IF (#SEL_IN = TRUE) OR (#HmiData.Op_Dw_Cmd.%X15 = TRUE AND #MODO_OP_SUP = TRUE) THEN
+	        #M_SEL_IN := TRUE;
+	    ELSIF (#SEL_IN = FALSE) OR (#HmiData.Op_Dw_Cmd.%X14 = TRUE AND #MODO_OP_SUP = TRUE) THEN
+	        #M_SEL_IN := FALSE;
+	    END_IF;
+	
+	(******************************************
+	  Network 6: Habilita Alarme Muito Alto
+	*******************************************)
+	    IF (*(#MODO_OP_SUP = FALSE AND *)#HAB_A_HH = TRUE OR #HmiData.Op_Dw_Cmd.%X0 = TRUE (*AND #MODO_OP_SUP = TRUE*) THEN
+	        #M_HAB_A_HH := TRUE;
+	    ELSIF (*(#MODO_OP_SUP = FALSE AND *) #HAB_A_HH = FALSE AND #HmiData.Op_Dw_Cmd.%X1 = TRUE (*AND #MODO_OP_SUP = TRUE)*) THEN
+	        #M_HAB_A_HH := FALSE;
+	    END_IF;
+	
+	(******************************************
+	  Network 7: Habilita Alarme Alto
+	*******************************************)
+	    IF (#MODO_OP_SUP = FALSE AND #HAB_A_H = TRUE) OR (#HmiData.Op_Dw_Cmd.%X2 = TRUE AND #MODO_OP_SUP = TRUE) THEN
+	        #M_HAB_A_H := TRUE;
+	    ELSIF (#MODO_OP_SUP = FALSE AND #HAB_A_H = FALSE) OR (#HmiData.Op_Dw_Cmd.%X3 = TRUE AND #MODO_OP_SUP = TRUE) THEN
+	        #M_HAB_A_H := FALSE;
+	    END_IF;
+	  
+	(******************************************
+	  Network 8: Habilita Alarme Baixo
+	*******************************************)
+	    IF (#MODO_OP_SUP = FALSE AND #HAB_A_L = TRUE) OR (#HmiData.Op_Dw_Cmd.%X4 = TRUE AND #MODO_OP_SUP = TRUE) THEN
+	        #M_HAB_A_L := TRUE;
+	    ELSIF (#MODO_OP_SUP = FALSE AND #HAB_A_L = FALSE) OR (#HmiData.Op_Dw_Cmd.%X5 = TRUE AND #MODO_OP_SUP = TRUE) THEN
+	        #M_HAB_A_L := FALSE;
+	    END_IF;
+	
+	(******************************************
+	  Network 9: Habilita Alarme Muito Baixo
+	*******************************************)
+	    IF (#MODO_OP_SUP = FALSE AND #HAB_A_LL = TRUE) OR (#HmiData.Op_Dw_Cmd.%X6 = TRUE AND #MODO_OP_SUP = TRUE) THEN
+	        #M_HAB_A_LL := TRUE;
+	    ELSIF (#MODO_OP_SUP = FALSE AND #HAB_A_LL = FALSE) OR (#HmiData.Op_Dw_Cmd.%X7 = TRUE AND #MODO_OP_SUP = TRUE) THEN
+	        #M_HAB_A_LL := FALSE;
+	    END_IF;
+	
+	(*****************************************************************
+	  Network 10: Converte Inteiro para Real e Escala Modo Selecionado
+	******************************************************************)
+	//Seleciona Valores Para Cartão Siemens
+	    IF (#SEL_ANA = 0 AND #BIPOLAR = TRUE) THEN
+	        #K1 := -27648.0;
+	        #K2 := 27648.0;
+	    ELSIF (#SEL_ANA = 0 AND #BIPOLAR = FALSE) THEN
+	        #K1 := 0.0;
+	        #K2 := 27648.0;
+	    END_IF;
+	//Seleciona Valores Para Cartão WAGO
+	IF (#SEL_ANA = 1 AND #BIPOLAR = TRUE) THEN
+	    #K1 := -32767.0;
+	    #K2 := 32767.0;
+	ELSIF (#SEL_ANA = 1 AND #BIPOLAR = FALSE) THEN
+	    #K1 := 0.0;
+	    #K2 := 32767.0;
+	END_IF;
+	//Seleciona Valores Para Cartão BOSCH
+	IF (#SEL_ANA = 2 AND #BIPOLAR = TRUE) THEN
+	    #K1 := -65535.0;
+	    #K2 := 65535.0;
+	ELSIF (#SEL_ANA = 2 AND #BIPOLAR = FALSE) THEN
+	    #K1 := 0.0;
+	    #K2 := 65535.0;
+	END_IF;
+	
+	IF (#SEL_TERM = FALSE AND #M_SEL_IN = FALSE AND #M_SIM_ON = FALSE) THEN
+	    // Converte Inteiro para Real e Escala (4..20mA)
+	    #M_OUT := ((INT_TO_REAL(#IN_INT) - #K1) / (#K2 - #K1) * (#M_HI_LIM - #M_LO_LIM)) + #M_LO_LIM;
+	ELSIF (#SEL_TERM = TRUE AND #M_SEL_IN = FALSE AND #M_SIM_ON = FALSE) THEN
+	        // Converte Inteiro para Real modo termopar)
+	    #M_OUT := ((INT_TO_REAL(#IN_INT))/10);
+	END_IF;
+	
+	(*****************************************************************
+	  Network 11: Valores de Saída Modo Real/Simulação
+	******************************************************************)
+	IF (#M_SIM_ON = FALSE AND #M_SEL_IN = TRUE) THEN
+	    // Set Valores em Modo Processo (real valor)
+	    #M_OUT := LIMIT(MN := #M_LO_LIM, IN := #IN_REAL, MX := #M_HI_LIM);
+	ELSIF (#M_SIM_ON = TRUE) THEN
+	    // Set Valores Modo Simulação (real valor)
+	    #M_OUT := LIMIT(MN := #M_LO_LIM, IN := #M_IN_SIM, MX := #M_HI_LIM);
+	END_IF;
+	
+	//Filtro Entrada Analógica
+	#FILTRO(IN := #M_OUT,
+	        T := #TP_FILTRO);
+	
+	(*****************************************************************
+	  Network 12: Falhas Pereferia Unipolar Modo (4..20mA)
+	******************************************************************)
+	(*
+	    Measuring Range   Units       Range
+	    (4..20mA)         (Dez)
+	    ============================================
+	    >22,81            >32511      Overrun
+	    --------------------------------------------
+	    22,81              32511
+	      .                           High range
+	    20,01              27649         
+	    --------------------------------------------
+	    20,00              27648 
+	      .                           Nominal range
+	     4,00                  0
+	    --------------------------------------------
+	     3,99                 -1
+	      .                           Low range
+	     1,185             -4864
+	    --------------------------------------------
+	    <1,185            <-4864      Wire breakage
+	*)
+	IF #M_SIM_ON = FALSE AND #M_SEL_IN = FALSE AND #BIPOLAR = FALSE AND #SEL_ANA = 0 THEN
+	    CASE #IN_INT OF
+	        -4864..-1:      // Low range
+	            #M_CURTO_CIRC := FALSE;
+	            #M_A_HI_RANGE := FALSE;
+	            #M_A_LO_RANGE := TRUE;
+	            #M_CANAL_ABERTO := FALSE;
+	        0..27648:       // Normal range
+	            #M_CURTO_CIRC := FALSE;
+	            #M_A_HI_RANGE := FALSE;
+	            #M_A_LO_RANGE := FALSE;
+	            #M_CANAL_ABERTO := FALSE;
+	        27649..32511:   // High range
+	            #M_CURTO_CIRC := FALSE;
+	            #M_A_HI_RANGE := TRUE;
+	            #M_A_LO_RANGE := FALSE;
+	            #M_CANAL_ABERTO := FALSE;
+	        ELSE
+	            IF #IN_INT > 32511 THEN
+	                // Overrun
+	                #M_CURTO_CIRC := TRUE;
+	                #M_A_HI_RANGE := FALSE;
+	                #M_A_LO_RANGE := FALSE;
+	                #M_CANAL_ABERTO := FALSE;
+	            ELSE
+	                // Wire break
+	                #M_CURTO_CIRC := FALSE;
+	                #M_A_HI_RANGE := FALSE;
+	                #M_A_LO_RANGE := FALSE;
+	                #M_CANAL_ABERTO := TRUE;
+	            END_IF;
+	    END_CASE;
+	END_IF;
+	
+	(*****************************************************************
+	  Network 13: Falhas Pereferia Bipolar Modo (4..20mA)
+	******************************************************************)
+	
+	(*
+	    Measuring Range   Units       Range
+	    (4..20mA)         (Dez)
+	    ============================================
+	    >22,81            >32511      Overrun
+	    --------------------------------------------
+	    22,81              32511
+	      .                           High range
+	    20,01              27649         
+	    --------------------------------------------
+	    20,00              27648 
+	      .                           Normal range
+	     4,00             -27648
+	    --------------------------------------------
+	     3,99             -27649
+	      .                           Low range
+	     1,185            -32512
+	    --------------------------------------------
+	    <1,185           <-32512      Wire breakage
+	*)
+	IF #M_SIM_ON = FALSE AND #M_SEL_IN = FALSE AND #BIPOLAR = TRUE AND #SEL_ANA = 0 THEN
+	    CASE #IN_INT OF
+	        -32512..-27649:         // Low range
+	            #M_CURTO_CIRC := FALSE;
+	            #M_A_HI_RANGE := FALSE;
+	            #M_A_LO_RANGE := TRUE;
+	            #M_CANAL_ABERTO := FALSE;
+	        -27648..27648:         // Normal range
+	            #M_CURTO_CIRC := FALSE;
+	            #M_A_HI_RANGE := FALSE;
+	            #M_A_LO_RANGE := FALSE;
+	            #M_CANAL_ABERTO := FALSE;
+	        27649..32511:         // High range
+	            #M_CURTO_CIRC := FALSE;
+	            #M_A_HI_RANGE := TRUE;
+	            #M_A_LO_RANGE := FALSE;
+	            #M_CANAL_ABERTO := FALSE;
+	        ELSE
+	            IF #IN_INT > 32511 THEN
+	                // Overrun
+	                #M_CURTO_CIRC := TRUE;
+	                #M_A_HI_RANGE := FALSE;
+	                #M_A_LO_RANGE := FALSE;
+	                #M_CANAL_ABERTO := FALSE;
+	            ELSE
+	                // Wire break
+	                #M_CURTO_CIRC := FALSE;
+	                #M_A_HI_RANGE := FALSE;
+	                #M_A_LO_RANGE := FALSE;
+	                #M_CANAL_ABERTO := TRUE;
+	            END_IF;
+	    END_CASE;
+	END_IF;
+	
+	(*****************************************************************
+	  Network 14: Falha Geral
+	******************************************************************)
+	#M_FALHA := #M_CURTO_CIRC = TRUE OR #M_CANAL_ABERTO = TRUE;
+	
+	(******************************************
+	  Network 15: Tempo para Habilitar Alarmes
+	*******************************************)
+	#TON_ALARME(IN := #HAB_ALARME,
+	            PT := (REAL_TO_DINT(#TP_ALARME * 1000.0)));
+	
+	(*****************************************************************
+	  Network 16: Alarme Muito Alto
+	******************************************************************)
+	IF #M_HAB_A_HH = TRUE AND #TON_ALARME.Q = TRUE THEN
+	    IF #M_LIM_A_HH <= #M_OUT THEN
+	        #M_A_HH := TRUE;
+	    ELSIF (#M_LIM_A_HH - #M_LIM_HYS) > #M_OUT THEN
+	        #M_A_HH := FALSE;
+	    END_IF;
+	ELSE
+	    #M_A_HH := FALSE;
+	END_IF;
+	
+	(*****************************************************************
+	  Network 17: Alarme Alto
+	******************************************************************)
+	IF #M_HAB_A_H = TRUE AND #TON_ALARME.Q = TRUE THEN
+	    IF #M_LIM_A_H <= #M_OUT THEN
+	        #M_A_H := TRUE;
+	    ELSIF (#M_LIM_A_H - #M_LIM_HYS) > #M_OUT THEN
+	        #M_A_H := FALSE;
+	    END_IF;
+	ELSE
+	    #M_A_H := FALSE;
+	END_IF;
+	
+	(*****************************************************************
+	  Network 18: Alarme Baixo
+	******************************************************************)
+	IF #M_HAB_A_L = TRUE AND #TON_ALARME.Q = TRUE THEN
+	    IF #M_LIM_A_L >= #M_OUT THEN
+	        #M_A_L := TRUE;
+	    ELSIF (#M_LIM_A_L + #M_LIM_HYS) < #M_OUT THEN
+	        #M_A_L := FALSE;
+	    END_IF;
+	ELSE
+	    #M_A_L := FALSE;
+	END_IF;
+	
+	(*****************************************************************
+	  Network 19: Alarme Muito Baixo
+	******************************************************************)
+	IF #M_HAB_A_LL = TRUE AND #TON_ALARME.Q = TRUE THEN
+	    IF #M_LIM_A_LL >= #M_OUT THEN
+	        #M_A_LL := TRUE;
+	    ELSIF (#M_LIM_A_LL + #M_LIM_HYS) < #M_OUT THEN
+	        #M_A_LL := FALSE;
+	    END_IF;
+	ELSE
+	    #M_A_LL := FALSE;
+	END_IF;
+	
+	(*****************************************************************
+	  Network 20: Escreve Memorias Internas para Saídas
+	******************************************************************)
+	#OUT := #FILTRO.OUT;
+	#OUT_HI_LIM := #M_HI_LIM;
+	#OUT_LO_LIM := #M_LO_LIM;
+	#OUT_LIM_HYS := #M_LIM_HYS;
+	#OUT_LIM_A_HH := #M_LIM_A_HH;
+	#OUT_LIM_A_H := #M_LIM_A_H;
+	#OUT_LIM_A_L := #M_LIM_A_L;
+	#OUT_LIM_A_LL := #M_LIM_A_LL;
+	#Q_HAB_A_HH := #M_HAB_A_HH;
+	#Q_HAB_A_H := #M_HAB_A_H;
+	#Q_HAB_A_L := #M_HAB_A_L;
+	#Q_HAB_A_LL := #M_HAB_A_LL;
+	#Q_A_HH := #M_A_HH;
+	#Q_A_H := #M_A_H;
+	#Q_A_L := #M_A_L;
+	#Q_A_LL := #M_A_LL;
+	#Q_SIM_ON := #M_SIM_ON;
+	#Q_HYS_SET := #M_HYS_SET;
+	#Q_SEL_IN := #M_SEL_IN;
+	#Q_FALHA := #M_FALHA;
+	#Q_CURTO_CIRC := #M_CURTO_CIRC;
+	#Q_A_HI_RANGE := #M_A_HI_RANGE;
+	#Q_A_LO_RANGE := #M_A_LO_RANGE;
+	#Q_CANAL_ABERTO := #M_CANAL_ABERTO;
+	
+	(*****************************************************************
+	  Network 21: Váriaveis IHM
+	******************************************************************)
+	IF #MODO_OP_SUP = FALSE THEN
+	    #HmiData.#Op_Hi_Lim := #HI_LIM;
+	    #HmiData.#Op_Lo_Lim := #LO_LIM;
+	    #HmiData.Op_Lim_A_HH := #LIM_A_HH;
+	    #HmiData.Op_Lim_A_H := #LIM_A_H;
+	    #HmiData.Op_Lim_A_L := #LIM_A_L;
+	    #HmiData.Op_Lim_A_LL := #LIM_A_LL;
+	    #HmiData.Op_Lim_Histeresys := #LIM_HYS;
+	END_IF;
+	
+	#HmiData.Out := #OUT;
+	#HmiData.Unit := #UNIT;
+	#HmiData.Instance := #INSTANCE;
+	//Status Bit IHM
+	#HmiData.QdwStatus.%X0 := #MODO_OP_SUP;
+	#HmiData.QdwStatus.%X1 := FALSE;
+	#HmiData.QdwStatus.%X2 := #MODO_SIM_SUP;
+	#HmiData.QdwStatus.%X3 := FALSE;
+	#HmiData.QdwStatus.%X4 := #M_SEL_IN;
+	#HmiData.QdwStatus.%X5 := #M_HYS_SET;
+	#HmiData.QdwStatus.%X6 := FALSE;
+	#HmiData.QdwStatus.%X7 := FALSE;
+	#HmiData.QdwStatus.%X8 := FALSE;
+	#HmiData.QdwStatus.%X9 := FALSE;
+	#HmiData.QdwStatus.%X10 := FALSE;
+	#HmiData.QdwStatus.%X11 := FALSE;
+	#HmiData.QdwStatus.%X12 := FALSE;
+	#HmiData.QdwStatus.%X13 := FALSE;
+	#HmiData.QdwStatus.%X14 := FALSE;
+	#HmiData.QdwStatus.%X15 := FALSE;
+	#HmiData.QdwStatus.%X16 := #M_SIM_ON;
+	#HmiData.QdwStatus.%X17 := FALSE;
+	#HmiData.QdwStatus.%X18 := #M_HAB_A_HH;
+	#HmiData.QdwStatus.%X19 := #M_HAB_A_H;
+	#HmiData.QdwStatus.%X20 := #M_HAB_A_L;
+	#HmiData.QdwStatus.%X21 := #M_HAB_A_LL;
+	#HmiData.QdwStatus.%X22 := #M_A_HH;
+	#HmiData.QdwStatus.%X23 := #M_A_H;
+	#HmiData.QdwStatus.%X24 := #M_A_L;
+	#HmiData.QdwStatus.%X25 := #M_A_LL;
+	#HmiData.QdwStatus.%X26 := FALSE;
+	#HmiData.QdwStatus.%X27 := #M_FALHA;
+	#HmiData.QdwStatus.%X28 := #M_CURTO_CIRC;
+	#HmiData.QdwStatus.%X29 := #M_A_HI_RANGE;
+	#HmiData.QdwStatus.%X30 := #M_A_LO_RANGE;
+	#HmiData.QdwStatus.%X31 := #M_CANAL_ABERTO;
+	
+	
+	(*********************************************************
+	Network 22: Eventos para Supervisório
+	**********************************************************) 
+	
+	//EVENTO DESABILITA ALARME HH
+	#Evento_Hab_Alm_HH(SIG := NOT #M_HAB_A_HH,
+	                   SD_1 := #TEXTO_ALARME,
+	                   SD_2 := #AREA_ALARME,
+	                   SD_5 := "S0231_USER".USER_NAME,
+	                   SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	//EVENTO DESABILITA ALARME H
+	#Evento_Hab_Alm_H(SIG := NOT #M_HAB_A_H,
+	                  SD_1 := #TEXTO_ALARME,
+	                  SD_2 := #AREA_ALARME,
+	                  SD_5 := "S0231_USER".USER_NAME,
+	                  SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	//EVENTO DESABILITA ALARME L
+	#Evento_Hab_Alm_L(SIG := NOT #M_HAB_A_L,
+	                  SD_1 := #TEXTO_ALARME,
+	                  SD_2 := #AREA_ALARME,
+	                  SD_5 := "S0231_USER".USER_NAME,
+	                  SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	
+	//EVENTO DESABILITA ALARME LL
+	#Evento_Hab_Alm_LL(SIG := NOT #M_HAB_A_LL,
+	                   SD_1 := #TEXTO_ALARME,
+	                   SD_2 := #AREA_ALARME,
+	                   SD_5 := "S0231_USER".USER_NAME,
+	                   SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	//EVENTO SIMULAÇÃO HABILITADA PELO OPERADOR
+	#Evento_Simulacao(SIG := #M_SIM_ON,
+	                  SD_1 := #TEXTO_ALARME,
+	                  SD_2 := #AREA_ALARME,
+	                  SD_5 := "S0231_USER".USER_NAME,
+	                  SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	//EVENTO HYSTERESE MODO ABSOLUTO
+	#Evento_Hysterese(SIG := #M_HYS_SET,
+	                  SD_1 := #TEXTO_ALARME,
+	                  SD_2 := #AREA_ALARME,
+	                  SD_5 := "S0231_USER".USER_NAME,
+	                  SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	(*********************************************************
+	Network 23: Eventos para Supervisório Setpoint Alterado
+	**********************************************************) 
+	//SETPOINT DE ALARME MUITO ALTO ALTERADO
+	#Evento_Sp_Alm_HH(SIG := #Op_Sp_Alm_HH_Ult_Valor <> #HmiData.Op_Lim_A_HH,
+	                  SD_1 := #TEXTO_ALARME,
+	                  SD_2 := #AREA_ALARME,
+	                  SD_3 := #HmiData.Op_Lim_A_HH,
+	                  SD_4 := #Op_Sp_Alm_HH_Ult_Valor,
+	                  SD_5 := "S0231_USER".USER_NAME,
+	                  SD_6 := "S0231_USER".LOCAL_MACHINE,
+	                  SD_7 := #UNIT);
+	
+	//SETPOINT DE ALARME ALTO ALTERADO
+	#Evento_Sp_Alm_H(SIG := #Op_Sp_Alm_H_Ult_Valor <> #HmiData.Op_Lim_A_H,
+	                 SD_1 := #TEXTO_ALARME,
+	                 SD_2 := #AREA_ALARME,
+	                 SD_3 := #HmiData.Op_Lim_A_H,
+	                 SD_4 := #Op_Sp_Alm_H_Ult_Valor,
+	                 SD_5 := "S0231_USER".USER_NAME,
+	                 SD_6 := "S0231_USER".LOCAL_MACHINE,
+	                 SD_7 := #UNIT);
+	
+	//SETPOINT DE ALARME BAIXO ALTERADO
+	#Evento_Sp_Alm_L(SIG := #Op_Sp_Alm_L_Ult_Valor <> #HmiData.Op_Lim_A_L,
+	                 SD_1 := #TEXTO_ALARME,
+	                 SD_2 := #AREA_ALARME,
+	                 SD_3 := #HmiData.Op_Lim_A_L,
+	                 SD_4 := #Op_Sp_Alm_L_Ult_Valor,
+	                 SD_5 := "S0231_USER".USER_NAME,
+	                 SD_6 := "S0231_USER".LOCAL_MACHINE,
+	                 SD_7 := #UNIT);
+	
+	//SETPOINT DE ALARME MUITO BAIXO ALTERADO
+	#Evento_Sp_Alm_LL(SIG := #Op_Sp_Alm_LL_Ult_Valor <> #HmiData.Op_Lim_A_LL,
+	                  SD_1 := #TEXTO_ALARME,
+	                  SD_2 := #AREA_ALARME,
+	                  SD_3 := #HmiData.Op_Lim_A_LL,
+	                  SD_4 := #Op_Sp_Alm_LL_Ult_Valor,
+	                  SD_5 := "S0231_USER".USER_NAME,
+	                  SD_6 := "S0231_USER".LOCAL_MACHINE,
+	                  SD_7 := #UNIT);
+	
+	//SELECIONADA UNIDADE HYSTERESES
+	IF #M_HYS_SET THEN
+	    #Unit_Sp_Hyst := #UNIT;
+	ELSE
+	    #Unit_Sp_Hyst := '%';
+	END_IF;
+	
+	//SETPOINT DE HYSTERESES ALTERADO
+	#Evento_Sp_Hysterese(SIG := #Op_Sp_Hysterese_Ult_Valor <> #HmiData.Op_Lim_Histeresys,
+	                     SD_1 := #TEXTO_ALARME,
+	                     SD_2 := #AREA_ALARME,
+	                     SD_3 := #HmiData.Op_Lim_Histeresys,
+	                     SD_4 := #Op_Sp_Hysterese_Ult_Valor,
+	                     SD_5 := "S0231_USER".USER_NAME,
+	                     SD_6 := "S0231_USER".LOCAL_MACHINE,
+	                     SD_7 := #Unit_Sp_Hyst);
+	
+	//SETPOINT DE SIMULAÇÃO ALTERADO
+	#Evento_Sp_Simulacao(SIG := (#Op_Sp_Simulacao_Ult_Valor <> #HmiData.Op_In_Sim) AND #M_SIM_ON,
+	                     SD_1 := #TEXTO_ALARME,
+	                     SD_2 := #AREA_ALARME,
+	                     SD_3 := #HmiData.Op_In_Sim,
+	                     SD_4 := #Op_Sp_Simulacao_Ult_Valor,
+	                     SD_5 := "S0231_USER".USER_NAME,
+	                     SD_6 := "S0231_USER".LOCAL_MACHINE,
+	                     SD_7 := #UNIT);
+	
+	//SETPOINT ESCALA SUPERIOR ALTERADO
+	#Evento_Sp_Hi_Lim(SIG := #Op_Sp_Hi_Lim_Ult_Valor <> #HmiData.Op_Hi_Lim,
+	                  SD_1 := #TEXTO_ALARME,
+	                  SD_2 := #AREA_ALARME,
+	                  SD_3 := #HmiData.Op_Hi_Lim,
+	                  SD_4 := #Op_Sp_Hi_Lim_Ult_Valor,
+	                  SD_5 := "S0231_USER".USER_NAME,
+	                  SD_6 := "S0231_USER".LOCAL_MACHINE,
+	                  SD_7 := #UNIT);
+	//SETPOINT ESCALA INFERIOR ALTERADO
+	#Evento_Sp_Lo_Lim(SIG := #Op_Sp_Lo_Lim_Ult_Valor <> #HmiData.Op_Lo_Lim,
+	                  SD_1 := #TEXTO_ALARME,
+	                  SD_2 := #AREA_ALARME,
+	                  SD_3 := #HmiData.Op_Lo_Lim,
+	                  SD_4 := #Op_Sp_Lo_Lim_Ult_Valor,
+	                  SD_5 := "S0231_USER".USER_NAME,
+	                  SD_6 := "S0231_USER".LOCAL_MACHINE,
+	                  SD_7 := #UNIT);
+	
+	(*********************************************************
+	Network 24: Alarmes para Supervisório
+	**********************************************************) 
+	//ALARME MUITO ALTO
+	#Alarme_HH(SIG := #M_A_HH,
+	           SD_1 := #TEXTO_ALARME,
+	           SD_2 := #AREA_ALARME,
+	           SD_5 := "S0231_USER".USER_NAME,
+	           SD_6 := "S0231_USER".LOCAL_MACHINE,
+	           SD_7 := #UNIT,
+	           SD_8 := #HmiData.Op_Lim_A_HH);
+	
+	//ALARME ALTO
+	#Alarme_H(SIG := #M_A_H,
+	          SD_1 := #TEXTO_ALARME,
+	          SD_2 := #AREA_ALARME,
+	          SD_5 := "S0231_USER".USER_NAME,
+	          SD_6 := "S0231_USER".LOCAL_MACHINE,
+	          SD_7 := #UNIT,
+	          SD_8 := #HmiData.Op_Lim_A_H);
+	
+	//ALARME BAIXO
+	#Alarme_L(SIG := #M_A_L,
+	          SD_1 := #TEXTO_ALARME,
+	          SD_2 := #AREA_ALARME,
+	          SD_5 := "S0231_USER".USER_NAME,
+	          SD_6 := "S0231_USER".LOCAL_MACHINE,
+	          SD_7 := #UNIT,
+	          SD_8 := #HmiData.Op_Lim_A_L);
+	
+	//ALARME MUITO BAIXO
+	#Alarme_LL(SIG := #M_A_LL,
+	           SD_1 := #TEXTO_ALARME,
+	           SD_2 := #AREA_ALARME,
+	           SD_5 := "S0231_USER".USER_NAME,
+	           SD_6 := "S0231_USER".LOCAL_MACHINE,
+	           SD_7 := #UNIT,
+	           SD_8 := #HmiData.Op_Lim_A_LL);
+	
+	
+	(*********************************************************
+	Network 25: Falha para Supervisório
+	**********************************************************) 
+	
+	//FALHA CURTO CANAL ANALÓGICO
+	#Falha_Curto_Canal(SIG := #M_CURTO_CIRC,
+	                   SD_1 := #TEXTO_ALARME,
+	                   SD_2 := #AREA_ALARME,
+	                   SD_5 := "S0231_USER".USER_NAME,
+	                   SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	//FALHA CANAL ANALÓGICO ABERTO
+	#Falha_Canal_Aberto(SIG := #M_CANAL_ABERTO,
+	                    SD_1 := #TEXTO_ALARME,
+	                    SD_2 := #AREA_ALARME,
+	                    SD_5 := "S0231_USER".USER_NAME,
+	                    SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	
+	(**********************************************************
+	Network 26: Escreve Valores Atuais Memorias dos Eventos
+	***********************************************************)
+	#Op_Sp_Alm_HH_Ult_Valor := #HmiData.Op_Lim_A_HH;
+	#Op_Sp_Alm_H_Ult_Valor := #HmiData.Op_Lim_A_H;
+	#Op_Sp_Alm_L_Ult_Valor := #HmiData.Op_Lim_A_L;
+	#Op_Sp_Alm_LL_Ult_Valor := #HmiData.Op_Lim_A_LL;
+	#Op_Sp_Hysterese_Ult_Valor := #HmiData.Op_Lim_Histeresys;
+	#Op_Sp_Simulacao_Ult_Valor := #HmiData.Op_In_Sim;
+	#Op_Sp_Hi_Lim_Ult_Valor := #HmiData.Op_Hi_Lim;
+	#Op_Sp_Lo_Lim_Ult_Valor := #HmiData.Op_Lo_Lim;
+	
+	
+	(**************************************************
+	Network 27: Reset Palavra de Comando Supervisório
+	***************************************************)
+	IF #HmiData.Op_Dw_Cmd <> 0 THEN
+	    #HmiData.Op_Dw_Cmd := 0;
+	END_IF;
+	
+	END_IF;
+END_FUNCTION_BLOCK
+

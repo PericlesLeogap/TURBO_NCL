@@ -1,0 +1,223 @@
+﻿FUNCTION_BLOCK "FB_GENERAL_INTERLOCK"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      QUANT_INTER { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // Qantidade de Intertravamentos
+      TEXTO_ALARME { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : String[80];   // Texto para Alarme e Eventos
+      AREA_ALARME { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : String[20];   // Texto para Filtrar Alarmes da Area
+      IN_INTER_1 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Entrada Intertravamento 1
+      IN_INTER_2 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Entrada Intertravamento 2
+      IN_INTER_3 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Entrada Intertravamento 3
+      IN_INTER_4 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Entrada Intertravamento 4
+      IN_INTER_5 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Entrada Intertravamento 5
+      IN_INTER_6 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Entrada Intertravamento 6
+      IN_INTER_7 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Entrada Intertravamento 7
+      IN_INTER_8 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Entrada Intertravamento 8
+      TEXTO_1 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : String[60];   // Textto Intertravamento 1
+      TEXTO_2 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : String[60];   // Textto Intertravamento 2
+      TEXTO_3 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : String[60];   // Textto Intertravamento 3
+      TEXTO_4 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : String[60];   // Textto Intertravamento 4
+      TEXTO_5 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : String[60];   // Textto Intertravamento 5
+      TEXTO_6 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : String[60];   // Textto Intertravamento 6
+      TEXTO_7 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : String[60];   // Textto Intertravamento 7
+      TEXTO_8 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : String[60];   // Textto Intertravamento 8
+   END_VAR
+
+   VAR_OUTPUT 
+      OUT_INTER_1 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Saida Intertravamento 1
+      OUT_INTER_2 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Saida Intertravamento 2
+      OUT_INTER_3 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Saida Intertravamento 3
+      OUT_INTER_4 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Saida Intertravamento 4
+      OUT_INTER_5 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Saida Intertravamento 5
+      OUT_INTER_6 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Saida Intertravamento 6
+      OUT_INTER_7 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Saida Intertravamento 7
+      OUT_INTER_8 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Saida Intertravamento 8
+      OUT_INTERTRAVAMENTO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Intertravamento Satifeito =1
+      BYPASS_ATIVO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Bypass Ativo = 1
+   END_VAR
+
+   VAR 
+      Hmi_Data : "pdt_Inter_08";   // PLC Data Type Intertravamento 16
+      Evento_ByPass_1 {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Para Evento 01
+      Evento_ByPass_2 {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Para Evento 02
+      Evento_ByPass_3 {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Para Evento 03
+      Evento_ByPass_4 {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Para Evento 04
+      Evento_ByPass_5 {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Para Evento 05
+      Evento_ByPass_6 {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Para Evento 06
+      Evento_ByPass_7 {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Para Evento 07
+      Evento_ByPass_8 {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Para Evento 08
+   END_VAR
+
+
+BEGIN
+	//QUANTIDADE DE INTERTRAVAMENTOS
+	#Hmi_Data.Quant_Inter := #QUANT_INTER;
+	
+	//BYPASS INTERTRAVAMENTOS
+	IF #Hmi_Data.Dword_Bypass.%X0 = true THEN
+	    #Hmi_Data.Stw_Bypass.%X0 := TRUE;
+	ELSIF #Hmi_Data.Dword_Bypass.%X1 = true THEN
+	    #Hmi_Data.Stw_Bypass.%X0 := FALSE;
+	END_IF;
+	
+	IF #Hmi_Data.Dword_Bypass.%X2 = true THEN
+	    #Hmi_Data.Stw_Bypass.%X1 := TRUE;
+	ELSIF #Hmi_Data.Dword_Bypass.%X3 = true THEN
+	    #Hmi_Data.Stw_Bypass.%X1 := FALSE;
+	END_IF;
+	
+	IF #Hmi_Data.Dword_Bypass.%X4 = true THEN
+	    #Hmi_Data.Stw_Bypass.%X2 := TRUE;
+	ELSIF #Hmi_Data.Dword_Bypass.%X5 = true THEN
+	    #Hmi_Data.Stw_Bypass.%X2 := FALSE;
+	END_IF;
+	
+	IF #Hmi_Data.Dword_Bypass.%X6 = true THEN
+	    #Hmi_Data.Stw_Bypass.%X3 := TRUE;
+	ELSIF #Hmi_Data.Dword_Bypass.%X7 = true THEN
+	    #Hmi_Data.Stw_Bypass.%X3 := FALSE;
+	END_IF;
+	
+	IF #Hmi_Data.Dword_Bypass.%X8 = true THEN
+	    #Hmi_Data.Stw_Bypass.%X4 := TRUE;
+	ELSIF #Hmi_Data.Dword_Bypass.%X9 = true THEN
+	    #Hmi_Data.Stw_Bypass.%X4 := FALSE;
+	END_IF;
+	
+	IF #Hmi_Data.Dword_Bypass.%X10 = true THEN
+	    #Hmi_Data.Stw_Bypass.%X5 := TRUE;
+	ELSIF #Hmi_Data.Dword_Bypass.%X11 = true THEN
+	    #Hmi_Data.Stw_Bypass.%X5 := FALSE;
+	END_IF;
+	
+	IF #Hmi_Data.Dword_Bypass.%X12 = true THEN
+	    #Hmi_Data.Stw_Bypass.%X6 := TRUE;
+	ELSIF #Hmi_Data.Dword_Bypass.%X13 = true THEN
+	    #Hmi_Data.Stw_Bypass.%X6 := FALSE;
+	END_IF;
+	
+	IF #Hmi_Data.Dword_Bypass.%X14 = true THEN
+	    #Hmi_Data.Stw_Bypass.%X7 := TRUE;
+	ELSIF #Hmi_Data.Dword_Bypass.%X15 = true THEN
+	    #Hmi_Data.Stw_Bypass.%X7 := FALSE;
+	END_IF;
+	
+	
+	//INTERTRAVAMENTO OK
+	#OUT_INTER_1 := (#IN_INTER_1 OR #Hmi_Data.Stw_Bypass.%X0);
+	#OUT_INTER_2 := (#IN_INTER_2 OR #Hmi_Data.Stw_Bypass.%X1);
+	#OUT_INTER_3 := (#IN_INTER_3 OR #Hmi_Data.Stw_Bypass.%X2);
+	#OUT_INTER_4 := (#IN_INTER_4 OR #Hmi_Data.Stw_Bypass.%X3);
+	#OUT_INTER_5 := (#IN_INTER_5 OR #Hmi_Data.Stw_Bypass.%X4);
+	#OUT_INTER_6 := (#IN_INTER_6 OR #Hmi_Data.Stw_Bypass.%X5);
+	#OUT_INTER_7 := (#IN_INTER_7 OR #Hmi_Data.Stw_Bypass.%X6);
+	#OUT_INTER_8 := (#IN_INTER_8 OR #Hmi_Data.Stw_Bypass.%X7);
+	
+	//INDICAÇÃO INTERTRAVAMENTO SATISFEITO
+	#OUT_INTERTRAVAMENTO := (#OUT_INTER_1) AND
+	(#OUT_INTER_2) AND
+	(#OUT_INTER_3) AND
+	(#OUT_INTER_4) AND
+	(#OUT_INTER_5) AND
+	(#OUT_INTER_6) AND
+	(#OUT_INTER_7) AND
+	(#OUT_INTER_8);
+	
+	//INDICAÇÃO BYPASS ATIVO
+	#BYPASS_ATIVO := (#Hmi_Data.Stw_Bypass.%X0) OR
+	(#Hmi_Data.Stw_Bypass.%X1) OR
+	(#Hmi_Data.Stw_Bypass.%X2) OR
+	(#Hmi_Data.Stw_Bypass.%X3) OR
+	(#Hmi_Data.Stw_Bypass.%X4) OR
+	(#Hmi_Data.Stw_Bypass.%X5) OR
+	(#Hmi_Data.Stw_Bypass.%X6) OR
+	(#Hmi_Data.Stw_Bypass.%X7);
+	#Hmi_Data.Bypass_Ativo := #BYPASS_ATIVO;
+	
+	//INDICAÇÃO STATUS INTERTRAVAMENTO
+	#Hmi_Data.Stw_Inter.%X0 := #OUT_INTER_1;
+	#Hmi_Data.Stw_Inter.%X1 := #OUT_INTER_2;
+	#Hmi_Data.Stw_Inter.%X2 := #OUT_INTER_3;
+	#Hmi_Data.Stw_Inter.%X3 := #OUT_INTER_4;
+	#Hmi_Data.Stw_Inter.%X4 := #OUT_INTER_5;
+	#Hmi_Data.Stw_Inter.%X5 := #OUT_INTER_6;
+	#Hmi_Data.Stw_Inter.%X6 := #OUT_INTER_7;
+	#Hmi_Data.Stw_Inter.%X7 := #OUT_INTER_8;
+	
+	//TEXTOS INTERTRAVAMENTOS
+	#Hmi_Data.Texto_1 := #TEXTO_1;
+	#Hmi_Data.Texto_2 := #TEXTO_2;
+	#Hmi_Data.Texto_3 := #TEXTO_3;
+	#Hmi_Data.Texto_4 := #TEXTO_4;
+	#Hmi_Data.Texto_5 := #TEXTO_5;
+	#Hmi_Data.Texto_6 := #TEXTO_6;
+	#Hmi_Data.Texto_7 := #TEXTO_7;
+	#Hmi_Data.Texto_8 := #TEXTO_8;
+	
+	IF #Hmi_Data.Dword_Bypass <> 0 THEN
+	    #Hmi_Data.Dword_Bypass := 0;
+	END_IF;
+	
+	
+	#Hmi_Data.Intertravamento := #OUT_INTERTRAVAMENTO;
+	
+	(*********************************************************
+	 Network : Eventos para Supervisório
+	**********************************************************) 
+	#Evento_ByPass_1(SIG := #Hmi_Data.Stw_Bypass.%X0,
+	                 SD_1 := #TEXTO_ALARME,
+	                 SD_2 := #AREA_ALARME,
+	                 SD_5 := "S0231_USER".USER_NAME,
+	                 SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	
+	#Evento_ByPass_2(SIG := #Hmi_Data.Stw_Bypass.%X1,
+	                 SD_1 := #TEXTO_ALARME,
+	                 SD_2 := #AREA_ALARME,
+	                 SD_5 := "S0231_USER".USER_NAME,
+	                 SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	
+	#Evento_ByPass_3(SIG := #Hmi_Data.Stw_Bypass.%X2,
+	                 SD_1 := #TEXTO_ALARME,
+	                 SD_2 := #AREA_ALARME,
+	                 SD_5 := "S0231_USER".USER_NAME,
+	                 SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	
+	#Evento_ByPass_4(SIG := #Hmi_Data.Stw_Bypass.%X3,
+	                 SD_1 := #TEXTO_ALARME,
+	                 SD_2 := #AREA_ALARME,
+	                 SD_5 := "S0231_USER".USER_NAME,
+	                 SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	#Evento_ByPass_5(SIG := #Hmi_Data.Stw_Bypass.%X4,
+	                 SD_1 := #TEXTO_ALARME,
+	                 SD_2 := #AREA_ALARME,
+	                 SD_5 := "S0231_USER".USER_NAME,
+	                 SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	
+	#Evento_ByPass_6(SIG := #Hmi_Data.Stw_Bypass.%X5,
+	                 SD_1 := #TEXTO_ALARME,
+	                 SD_2 := #AREA_ALARME,
+	                 SD_5 := "S0231_USER".USER_NAME,
+	                 SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	
+	#Evento_ByPass_7(SIG := #Hmi_Data.Stw_Bypass.%X6,
+	                 SD_1 := #TEXTO_ALARME,
+	                 SD_2 := #AREA_ALARME,
+	                 SD_5 := "S0231_USER".USER_NAME,
+	                 SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	
+	#Evento_ByPass_8(SIG := #Hmi_Data.Stw_Bypass.%X7,
+	                 SD_1 := #TEXTO_ALARME,
+	                 SD_2 := #AREA_ALARME,
+	                 SD_5 := "S0231_USER".USER_NAME,
+	                 SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	
+END_FUNCTION_BLOCK
+

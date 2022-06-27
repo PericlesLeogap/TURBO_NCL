@@ -1,0 +1,101 @@
+﻿FUNCTION_BLOCK "FB_RAMPA_PID"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      HAB_RAMPA { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;   // Habilita Rampa
+      IN { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 0.0;   // Entrada da Rampa
+      LU { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 100.0;   // Limite Superior da Rampa
+      LL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 0.0;   // Limite Inferior da Rampa
+      INC_RAMPA { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 1.0;   // Valor Incrementa Rampa
+      SET_LU { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Seta Saida para Limite Superior Programado -LU-
+      SET_LL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Seta Saída para Limite Inferiror Programado -LL-
+      RESET { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+   END_VAR
+
+   VAR_OUTPUT 
+      OUT { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Saída da Rampa
+   END_VAR
+
+   VAR 
+      RAMPA_UP { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Habilita Rampa de Subida
+      RAMPA_DOWN { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Habilita Rampa de Descida
+      M_OUT { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Interno Saída da Rampa
+      HORA_ATUAL {InstructionName := 'DTL'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : DTL;   // Hora Atual do Sistema
+      HORA_SCAN_ANT {InstructionName := 'DTL'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : DTL;   // Hora do Scan Anterior
+      RET_SYS_TIME { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // Retorno Código de Erro Bloco "RD_SYS_T"
+      DIF_TIME_T { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Time;   // Diferença Entre Hora Atual e Ultimo Scan TIME
+      DIF_TIME_DI { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : DInt;   // Diferença Entre Hora Atual e Ultimo Scan DINT
+      DIF_TIME_R { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Diferença Entre Hora Atual e Ultimo Scan REAL
+   END_VAR
+
+
+BEGIN
+	(******************************************
+	 Network 1: Hora Atual do Sistema
+	*******************************************)
+	#RET_SYS_TIME := RD_SYS_T(#HORA_ATUAL);
+	//Diferença entre hora Atual e Ultimo Scan
+	#DIF_TIME_T := T_DIFF(IN1 := #HORA_ATUAL, IN2 := #HORA_SCAN_ANT);
+	//Converte Para Dint Diferença entre hora Atual e Ultimo Scan 
+	#DIF_TIME_DI := TIME_TO_DINT(#DIF_TIME_T);
+	//Converte Para Real Diferença entre hora Atual e Ultimo Scan 
+	#DIF_TIME_R := (DINT_TO_REAL(#DIF_TIME_DI)) / 1000.0;
+	//Escreve Hora Atual para Ultimo Scan
+	#HORA_SCAN_ANT := #HORA_ATUAL;
+	
+	(******************************************
+	 Network 2: Habilita Rampa de Subida e Descida
+	*******************************************)
+	IF #IN > #M_OUT THEN
+	    #RAMPA_UP := TRUE;
+	    #RAMPA_DOWN := FALSE;
+	END_IF;
+	IF #IN < #M_OUT THEN
+	    #RAMPA_UP := FALSE;
+	    #RAMPA_DOWN := TRUE;
+	END_IF;
+	
+	(******************************************
+	 Network 3: Incrementa ou Decrementa Rampa
+	*******************************************)
+	IF #HAB_RAMPA AND #RAMPA_UP THEN
+	    #M_OUT := #M_OUT + (#INC_RAMPA * #DIF_TIME_R);
+	ELSIF #HAB_RAMPA AND #RAMPA_DOWN THEN
+	    #M_OUT := #M_OUT - (#INC_RAMPA * #DIF_TIME_R);
+	END_IF;
+	
+	(******************************************
+	 Network 4: Limita Rampa Maior que entrada
+	*******************************************)
+	IF #RAMPA_UP AND (#M_OUT > #IN) THEN
+	    #M_OUT := #IN;
+	END_IF;
+	
+	(******************************************
+	 Network 5: Limita Rampa Menor que entrada
+	*******************************************)
+	IF #RAMPA_DOWN AND (#M_OUT < #IN) THEN
+	    #M_OUT := #IN;
+	END_IF;
+	
+	(******************************************
+	 Network 6: Seta Saída paara Limites da Rampa
+	*******************************************)
+	IF (#M_OUT < #LL) OR #SET_LL = TRUE THEN
+	    #M_OUT := #LL;
+	ELSIF (#M_OUT > #LU) OR (#SET_LU = TRUE) THEN
+	    #M_OUT := #LU;
+	END_IF;
+	
+	(******************************************
+	 Network 7: Reset Rampa
+	*******************************************)
+	IF #RESET THEN
+	    #M_OUT := #LL;
+	END_IF;
+	
+	#OUT := #M_OUT;
+	
+	
+END_FUNCTION_BLOCK
+

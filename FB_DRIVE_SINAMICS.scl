@@ -1,0 +1,89 @@
+﻿FUNCTION_BLOCK "FB_DRIVE_SINAMICS"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      ADR { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : HW_IO;
+      CWA { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Word;
+      SP1 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
+      SP2 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
+      SP3 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
+      SP4 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
+      SP5 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
+      SP6 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
+      SP7 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
+      SP8 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
+      SP9 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
+   END_VAR
+
+   VAR_OUTPUT 
+      E_COM { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+      SW_R { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Word;
+      SW_W { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Word;
+      STWA { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Word;
+      PV1 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
+      PV2 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
+      PV3 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
+      PV4 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
+      PV5 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
+      PV6 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
+      PV7 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
+      PV8 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;
+      PV9 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;
+   END_VAR
+
+   VAR DB_SPECIFIC
+      READ { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Array[1..20] of Byte;
+      READ_WORD { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} AT READ : Array[1..10] of Word;
+      WRITE { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Array[1..20] of Byte;
+      WRITE_WORD { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} AT WRITE : Array[1..10] of Word;
+   END_VAR
+
+   VAR_TEMP 
+      RET_READ : Int;
+      RET_WRITE : Int;
+   END_VAR
+
+
+BEGIN
+	//TABELA DE LEITURA DO DRIVE
+	#RET_READ := DPRD_DAT(LADDR := (#ADR), RECORD => #READ);   //TABELA READ
+	#SW_R := INT_TO_WORD(#RET_READ);                           //STATUS SFC14
+	
+	//TABELA DE DADOS DE ENTRADA
+	#STWA := ROL(IN:=#READ_WORD[1] ,N:=8);                      //STATUS WORD
+	#PV1 := INT_TO_REAL(WORD_TO_INT(#READ_WORD[2])) / 16384.0;  //VELOCIDADE ATUAL
+	#PV2 := INT_TO_REAL(WORD_TO_INT(#READ_WORD[3])) / 16384.0;  //CORRENTE ATUAL
+	#PV3 := INT_TO_REAL(WORD_TO_INT(#READ_WORD[4])) / 16384.0;  //TORQUE ATUAL
+	#PV4 := INT_TO_REAL(WORD_TO_INT(#READ_WORD[5])) / 16384.0;  //POTENCIA ATUAL
+	#PV5 := INT_TO_REAL(WORD_TO_INT(#READ_WORD[6])) / 16384.0;  //TEMPERATURA ATUAL DO INVERSOR 
+	#PV6 := INT_TO_REAL(WORD_TO_INT(#READ_WORD[7])) / 16384.0;  //TEMPERATURA ATUAL DO MOTOR
+	#PV7 := INT_TO_REAL(WORD_TO_INT(#READ_WORD[8])) / 16384.0;  //TENSÃO ATUAL DO LINK DC
+	#PV8 :=  WORD_TO_INT(#READ_WORD[9]);                        //CÓDIGO DE FALHAS
+	#PV9 :=  WORD_TO_INT(#READ_WORD[10]);                       //CÓDIGO DE ALARMES
+	
+	//TABELA DE DADOS DE SAÍDA
+	#WRITE_WORD[1] := ROL(IN:=#CWA ,N:=8);                        //CONTROL WORD
+	#WRITE_WORD[2] := INT_TO_WORD(REAL_TO_INT(#SP1 * 16384.0));   //REFERENCIA DE VELOCIDADE
+	#WRITE_WORD[3] := INT_TO_WORD(REAL_TO_INT(#SP2 * 16384.0));   //REFERENCIA DE TORQUE
+	#WRITE_WORD[4] := INT_TO_WORD(REAL_TO_INT(#SP3 * 16384.0));   //SETPOINT FATOR DIVISÃO DE CARGA
+	#WRITE_WORD[5] := INT_TO_WORD(REAL_TO_INT(#SP4 * 16384.0));   //SETPOINT LIMITE MÁXIMO DE VELOCIDADE
+	#WRITE_WORD[6] := INT_TO_WORD(REAL_TO_INT(#SP5 * 16384.0));   //SETPOINT RESERVA 03
+	#WRITE_WORD[7] := INT_TO_WORD(REAL_TO_INT(#SP6 * 16384.0));   //SETPOINT RESERVA 04
+	#WRITE_WORD[8] := INT_TO_WORD(REAL_TO_INT(#SP7 * 16384.0));   //SETPOINT RESERVA 05
+	#WRITE_WORD[9] := INT_TO_WORD(REAL_TO_INT(#SP8 * 16384.0));   //SETPOINT RESERVA 06
+	#WRITE_WORD[10] := INT_TO_WORD(REAL_TO_INT(#SP9 * 16384.0));  //SETPOINT RESERVA 07
+	
+	//FALHA DE COMUNICAÇÃO
+	IF (#RET_READ <> 0) OR (#RET_WRITE <> 0) THEN
+	    #E_COM := TRUE;
+	ELSE
+	    #E_COM := FALSE;
+	END_IF;
+	
+	//TABELA DE ESCRITA DO DRIVE
+	#RET_WRITE := DPWR_DAT(LADDR := (#ADR), RECORD := #WRITE);  //TABELA WRITE
+	#SW_W := INT_TO_WORD(#RET_WRITE);                           //STATUS SFC15
+	
+	
+END_FUNCTION_BLOCK
+

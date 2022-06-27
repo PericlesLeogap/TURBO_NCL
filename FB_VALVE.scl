@@ -1,0 +1,650 @@
+﻿FUNCTION_BLOCK "FB_VALVE"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      EMERGENCIA { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;   // 0 = Emergência Acionada
+      MODO_OP_SUP { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;   // 1 = Habilita Modo de operação via Supervisório Manual/Automático
+      MODO_CMD_SUP { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;   // 1 = Habilita Comando via Supervisório Liga/Desliga
+      MODO_CONT_SUP { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;   // 1 = Habilita Modo de Operação via Supervisório Local/Remoto
+      MODO_SIM_SUP { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // 1 = Habilita Modo Simulação Via Supervisório
+      SIM_ON { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // 1 = Abrir em Modo de Simulação / 0 = Fechar em Modo de Simulação
+      MODO_MON_SUP { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;   // 1 = Habilita Monitoração Fim de Curso Via Supervisório
+      MON_ON { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;   // 1 = Monitoração FeedBack Aberta/Fechada
+      RESET { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Pulso Reset Falhas
+      PERMISSAO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;   // 1 = Permissão para Abrir Válvula NF 1 = Permissão para Fechar Válvula NA
+      INV_VAL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Inverte Válvula 1 =  Normal Aberta/ 0 = Normal Fechada
+      AUTO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Pulso Seleciona Modo de Operação Automático
+      MANUAL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Pulso Seleciona Modo de Operação Manual
+      INTER_AUTO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;   // 0 = Intertravamento Ativo Modo Automático
+      ABRIR_AUTO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Pulso Abrir em Modo Automático
+      FECHAR_AUTO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Pulso Fechar em Modo Automático
+      INTER_MAN { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;   // 0 = Intertravamento Ativo em Modo Manual
+      ABRIR_MAN { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Pulso Abrir em Modo Manual
+      FECHAR_MAN { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Pulso Fechar em Modo Manual
+      REMOTO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Pulso Seleciona Modo de Operação Remoto
+      LOCAL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Pulso Seleciona Modo de Operação Local
+      INTER_LOCAL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;   // 0 = Intertravamento Ativo em Modo Local
+      ABRIR_LOCAL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Pulso Abrir em Modo Local
+      FECHAR_LOCAL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Pulso Fechar em Modo Local
+      SEL_FC_ABERTO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Seleciona Fim de Cuso de Aberto
+      FC_ABERTO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Fim de Curso Aberto
+      SEL_FC_FECHADO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Seleciona Fim de Cuso de Fechado
+      FC_FECHADO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Fim de Curso Fechado
+      TP_FALHA { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 10.0;   // Tempo Para Gerar Falha na Abertura da Válvula
+      TEXTO_ALARME { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : String[80];   // Texto para Alarme e Eventos
+      AREA_ALARME { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : String[20];   // Texto para Filtrar Alarmes da Area
+      RESTART { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Restart Cpu
+      INSTANCE { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : String[20];   // Db instance
+   END_VAR
+
+   VAR_OUTPUT 
+      Q_ABRIR { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Saída Comando Abrir Válvula
+      Q_FECHAR { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Saída Comando Fechar Válvula
+      Q_ABERTA { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Saída Válvula Aberta
+      Q_FECHADA { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Saída Válvula Fechada
+      Q_AUTO_MAN { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Modo de operação em Automático = 1 Manual = 0
+      Q_LOC_REM { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Modo de Operação em Remoto = 1 Local = 0
+      Q_SIM { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Indicação Simulação Ativa
+      Q_MON { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Indicação Monitoramento Ativo
+      Q_FALHA_MON { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Saída Falha de Monitoração Ativa
+      Q_FALHA { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Saída Falha Ativa
+      STW_VAL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // Indicação Status Válvula
+   END_VAR
+
+   VAR 
+      HmiData : "pdt_Val_OnOff";   // Data Type HMI
+      COND_RESET { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Condição Reset Falhas
+      RESET_PERIF { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Reset Falhas Periferia
+      RESET_OP { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Reset Falhas Operador
+      OP_RESET { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Reset Falhas
+      M_ABRIR { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Interno Saída para Abrir Válvula
+      M_FECHAR { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Interno Saída para Fechar Válvula
+      M_ABERTA { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Interno Válvula Aberta = 1
+      M_FECHADA { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Interno Válvula Fechada = 1
+   END_VAR
+   VAR RETAIN
+      M_AUTO_MAN { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Interno Modo de operação em Automático = 1 Manual = 0
+   END_VAR
+   VAR 
+      M_LOC_REM { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;   // Interno Modo de Operação em Remoto = 1 Local = 0
+      M_FALHA_MON { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Interno Falha Monitoração Ativa
+      M_FALHA { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Interno Falha Geral
+      M_SIM_ON { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Interno Indicação Simulação Ativa
+   END_VAR
+   VAR RETAIN
+      M_MON { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Interno Saída Monitoração Ativa
+      M_SEL_FC_ABERTA { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'True'} : Bool := TRUE;   // Interno Fim de Curso de Aberta Selecionado
+   END_VAR
+   VAR 
+      M_COND_SEL_FC_ABERTA { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Condição Habilita Seleção Fim de Curso de Aberta
+   END_VAR
+   VAR RETAIN
+      M_SEL_FC_FECHADA { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'True'} : Bool := TRUE;   // Interno Fim de Curso de Fechada Selecionado
+   END_VAR
+   VAR 
+      M_COND_SEL_FC_FECHADA { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Condição Habilita Seleção Fim de Curso de Fechada
+      M_FALHA_ABERTURA { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Interno Falha na Abertura da Válvula
+      M_FALHA_FECHAMENTO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Interno Falha no Fechamento da Válvula
+      M_FALHA_FC { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Interno Falha Fins de Curso em "1"
+      TON_ABERTURA {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;   // TON para Gerar Falha na Abertura da Válvula
+      TON_FECHAMENTO {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;   // TON para Gerar Falha no Fechamento da Válvula
+      TON_FC {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;   // Tempo falha Fins de Curso em "1"
+      TON_ABERTURA_SIM {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;   // Tempo Gerar Retorno de Aberta em Modo Simulação
+      TON_FECHAMENTO_SIM {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;   // Tempo Gerar Retorno de Fechada em Modo Simulação
+      TP_RESET {InstructionName := 'TP_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TP_TIME;   // Pulso Reset Falhas
+      Evento_Man_Auto {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Manual/Automático
+      Evento_Abrir {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Abrir Manual
+      Evento_Fechar {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Fechar Manual
+      Evento_Monitoracao {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Monitoração Habilita/Desabilita
+      Evento_Simulacao {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Simulação Habilita/Desabilita
+      Evento_Hab_Fc_Aberta {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Fim de Curso de Aberta Habilita/Desabilita
+      Evento_Hab_Fc_Fechada {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Fim de Curso de Fechada Habilita/Desabilita
+      Evento_Tp_Monitoracao {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Tempo Monitoração
+      Evento_Tp_Simulacao {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Tempo Simulação
+      Evento_Emergencia {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Emergência Acionada
+      Falha_Abertura {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Falha na Partida
+      Falha_Fechamento {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Falha na Parada
+      Falha_Fins_Curso {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Falha Fins de Curso em "1"
+   END_VAR
+   VAR RETAIN
+      Op_Tp_Falha_Ult_Valor { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Tempo de Falha Último Valor
+      Op_Tp_Sim_Ult_Valor { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Tempo de Simulação Último Valor
+   END_VAR
+
+   VAR_TEMP 
+      MON_ABERTA_SIM : Bool;   // Monitoração de Aberta em Modo de Simulação
+      MON_FECHADA_SIM : Bool;   // Monitoração de Fechada em Modo de Simulação
+   END_VAR
+
+
+BEGIN
+	(********************************
+	           Restart Cpu
+	*********************************)
+	IF #RESTART THEN
+	    IF #INV_VAL = FALSE THEN
+	        #M_ABRIR := FALSE;
+	        #M_FECHAR := TRUE;
+	        #M_ABERTA := FALSE;
+	        #M_FECHADA := TRUE;
+	        #Q_ABRIR := FALSE;
+	        #Q_ABERTA := FALSE;
+	        #Q_FECHADA := TRUE;
+	        #HmiData.Op_Dw_Cmd := 0;
+	    ELSE
+	        #M_ABRIR := TRUE;
+	        #M_FECHAR := FALSE;
+	        #M_ABERTA := TRUE;
+	        #M_FECHADA := FALSE;
+	        #Q_ABRIR := TRUE;
+	        #Q_ABERTA := TRUE;
+	        #Q_FECHADA := FALSE;
+	        #HmiData.Op_Dw_Cmd := 0;
+	    END_IF;
+	ELSE
+	
+	    // Cpu em Operação
+	
+	(******************************************
+	 Network 1: Modo de Operação Manual/Automático
+	 Variável: OPdwCmd  Bit:  16  =  Manual
+	 Variável: OPdwCmd  Bit:  17  =  Automático
+	*******************************************)
+	    IF (#AUTO) OR
+	        (#HmiData.Op_Dw_Cmd.%X17 = TRUE AND #MODO_OP_SUP = TRUE) THEN
+	        #M_AUTO_MAN := TRUE;
+	    ELSIF (#MANUAL) OR
+	        (#HmiData.Op_Dw_Cmd.%X16 = TRUE AND #MODO_OP_SUP = TRUE) THEN
+	        #M_AUTO_MAN := FALSE;
+	    END_IF;
+	    
+	(******************************************
+	 Network 2: Modo de Controle : Local/Remoto
+	 Variável: OPdwCmd  Bit:  18  =  Local
+	 Variável: OPdwCmd  Bit:  19  =  Remoto
+	*******************************************)
+	    IF (#REMOTO) OR (#HmiData.Op_Dw_Cmd.%X19 = TRUE AND #MODO_CONT_SUP = TRUE) THEN
+	        #M_LOC_REM := TRUE;
+	    ELSIF (#LOCAL) OR (#HmiData.Op_Dw_Cmd.%X18 = TRUE AND #MODO_CONT_SUP = TRUE) THEN
+	        #M_LOC_REM := FALSE;
+	    END_IF;
+	    
+	(******************************************
+	 Network 3: Simulação On/Off
+	 Variável: OPdwCmd  Bit:  20  =  Processo
+	 Variável: OPdwCmd  Bit:  21  =  Simulação
+	*******************************************)
+	    IF (#SIM_ON = TRUE AND #MODO_SIM_SUP = FALSE) OR (#HmiData.Op_Dw_Cmd.%X21 = TRUE AND #MODO_SIM_SUP = TRUE) THEN
+	        #M_SIM_ON := TRUE;
+	    ELSIF (#SIM_ON = FALSE AND #MODO_SIM_SUP = FALSE) OR (#HmiData.Op_Dw_Cmd.%X20 = TRUE AND #MODO_SIM_SUP = TRUE) THEN
+	        #M_SIM_ON := FALSE;
+	    END_IF;
+	    
+	(**********************************************
+	 Network 4: Monitoração FeddBack Aberta/Fechada
+	 Variável: OPdwCmd  Bit:  8  =  Monitoração ON
+	 Variável: OPdwCmd  Bit:  9  =  Monitoração OFF
+	***********************************************)
+	    IF (#MODO_MON_SUP = FALSE AND #MON_ON = FALSE) OR (#HmiData.Op_Dw_Cmd.%X9 = TRUE AND #MODO_MON_SUP = TRUE) THEN
+	        #M_MON := FALSE;
+	    ELSIF (#MODO_MON_SUP = FALSE AND #MON_ON = TRUE) OR (#HmiData.Op_Dw_Cmd.%X8 = TRUE AND #MODO_MON_SUP = TRUE) THEN
+	        #M_MON := TRUE;
+	    END_IF;
+	
+	(**********************************************
+	 Network 4: Seleção Fim de Curso Aberto
+	 Variável: OPdwCmd  Bit:  10  =  Habilita
+	 Variável: OPdwCmd  Bit:  11  =  Desabilita
+	***********************************************)   
+	    IF (#MODO_MON_SUP = FALSE AND (#SEL_FC_ABERTO = TRUE)) OR (#MODO_MON_SUP = TRUE AND #HmiData.Op_Dw_Cmd.%X10 = TRUE) THEN
+	        #M_SEL_FC_ABERTA := TRUE;
+	    ELSIF (#MODO_MON_SUP = FALSE AND (#SEL_FC_ABERTO = FALSE)) OR (#MODO_MON_SUP = TRUE AND #HmiData.Op_Dw_Cmd.%X11 = TRUE) THEN
+	        #M_SEL_FC_ABERTA := FALSE;
+	    END_IF;
+	
+	(**********************************************
+	 Network 4: Seleção Fim de Curso Fechado
+	 Variável: OPdwCmd  Bit:  12  =  Habilita
+	 Variável: OPdwCmd  Bit:  13  =  Desabilita
+	***********************************************)   
+	    IF (#MODO_MON_SUP = FALSE AND (#SEL_FC_FECHADO = TRUE)) OR (#MODO_MON_SUP = TRUE AND #HmiData.Op_Dw_Cmd.%X12 = TRUE) THEN
+	        #M_SEL_FC_FECHADA := TRUE;
+	    ELSIF (#MODO_MON_SUP = FALSE AND (#SEL_FC_FECHADO = FALSE)) OR (#MODO_MON_SUP = TRUE AND #HmiData.Op_Dw_Cmd.%X13 = TRUE) THEN
+	        #M_SEL_FC_FECHADA := FALSE;
+	    END_IF;
+	
+	(*************************************
+	 Network 8: Reset Falhas
+	 Variável: OPdwCmd  Bit:  24  =  Reset
+	**************************************)
+	// Condição Reset Falhas
+	IF (#RESET = TRUE OR #HmiData.Op_Dw_Cmd.%X24 = TRUE) AND #COND_RESET = FALSE THEN
+	    #RESET_OP := TRUE;
+	    #COND_RESET := TRUE;
+	ELSIF #RESET_OP = TRUE AND #COND_RESET = TRUE THEN
+	    #RESET_OP := FALSE;
+	ELSE
+	    #COND_RESET := FALSE;
+	END_IF;
+	
+	// Pulso Reset Falha
+	#TP_RESET(IN := (#RESET_OP),
+	          PT := t#5s,
+	          Q => #OP_RESET);
+	
+	IF #OP_RESET THEN
+	    #Q_FALHA_MON := FALSE;
+	    #Q_FALHA := FALSE;
+	    #M_FALHA_MON := FALSE;
+	    #M_FALHA_FC := FALSE;
+	    #M_FALHA := FALSE;
+	    #M_FALHA_ABERTURA := FALSE;
+	    #M_FALHA_FECHAMENTO := FALSE;
+	END_IF;
+	(*********************************************************
+	Network 15: Eventos para Supervisório
+	**********************************************************) 
+	
+	//EVENTO COMANDO MANUAL
+	#Evento_Man_Auto(SIG := NOT #M_AUTO_MAN,
+	                 SD_1 := #TEXTO_ALARME,
+	                 SD_2 := #AREA_ALARME,
+	                 SD_5 := "S0231_USER".USER_NAME,
+	                 SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	//EVENTO COMANDO ABRIR MANUAL OPERADOR
+	#Evento_Abrir(SIG := ((NOT #M_AUTO_MAN) AND #INTER_MAN AND #PERMISSAO AND (NOT #M_FALHA) AND #EMERGENCIA AND #M_LOC_REM AND (#HmiData.Op_Dw_Cmd.%X1)),
+	              SD_1 := #TEXTO_ALARME,
+	              SD_2 := #AREA_ALARME,
+	              SD_5 := "S0231_USER".USER_NAME,
+	              SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	//EVENTO COMANDO FECHAR MANUAL OPERADOR
+	#Evento_Fechar(SIG := ((NOT #M_AUTO_MAN) AND #INTER_MAN AND #PERMISSAO AND (NOT #M_FALHA) AND #EMERGENCIA AND #M_LOC_REM AND (#HmiData.Op_Dw_Cmd.%X0)),
+	               SD_1 := #TEXTO_ALARME,
+	               SD_2 := #AREA_ALARME,
+	               SD_5 := "S0231_USER".USER_NAME,
+	               SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	//EVENTO MONITORAÇÃO DESABILITADA PELO OPERADOR
+	#Evento_Monitoracao(SIG := NOT #M_MON,
+	                    SD_1 := #TEXTO_ALARME,
+	                    SD_2 := #AREA_ALARME,
+	                    SD_5 := "S0231_USER".USER_NAME,
+	                    SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	//EVENTO SIMULAÇÃO HABILITADA PELO OPERADOR
+	#Evento_Simulacao(SIG := #M_SIM_ON,
+	                  SD_1 := #TEXTO_ALARME,
+	                  SD_2 := #AREA_ALARME,
+	                  SD_5 := "S0231_USER".USER_NAME,
+	                  SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	//EVENTO FIM DE CURSO DE ABERTA DESABILITADO
+	#Evento_Hab_Fc_Aberta(SIG := NOT #M_SEL_FC_ABERTA,
+	                      SD_1 := #TEXTO_ALARME,
+	                      SD_2 := #AREA_ALARME,
+	                      SD_5 := "S0231_USER".USER_NAME,
+	                      SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	//EVENTO FIM DE CURSO DE FECHADA DESABILITADO
+	#Evento_Hab_Fc_Fechada(SIG := NOT #M_SEL_FC_FECHADA,
+	                       SD_1 := #TEXTO_ALARME,
+	                       SD_2 := #AREA_ALARME,
+	                       SD_5 := "S0231_USER".USER_NAME,
+	                       SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	//EMERGÊNCIA ACIONADA
+	#Evento_Emergencia(SIG := NOT #EMERGENCIA,
+	                   SD_1 := #TEXTO_ALARME,
+	                   SD_2 := #AREA_ALARME,
+	                   SD_5 := "S0231_USER".USER_NAME,
+	                   SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	(*********************************************************
+	Network 16: Eventos para Supervisório Setpoint Alterado
+	**********************************************************) 
+	
+	#Evento_Tp_Monitoracao(SIG := #Op_Tp_Falha_Ult_Valor <> #HmiData.Op_Tp_Falha,
+	                       SD_1 := #TEXTO_ALARME,
+	                       SD_2 := #AREA_ALARME,
+	                       SD_3 := #HmiData.Op_Tp_Falha,
+	                       SD_4 := #Op_Tp_Falha_Ult_Valor,
+	                       SD_5 := "S0231_USER".USER_NAME,
+	                       SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	#Evento_Tp_Simulacao(SIG := #Op_Tp_Sim_Ult_Valor <> #HmiData.Op_Tp_Indicacao_Sim,
+	                     SD_1 := #TEXTO_ALARME,
+	                     SD_2 := #AREA_ALARME,
+	                     SD_3 := #HmiData.Op_Tp_Indicacao_Sim,
+	                     SD_4 := #Op_Tp_Sim_Ult_Valor,
+	                     SD_5 := "S0231_USER".USER_NAME,
+	                     SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	
+	(**********************************************
+	 Network 6: ABRIR/FECHAR Válvula Normal Fechada
+	 Variável: OPdwCmd  Bit:  0  =  Fechar Válvula
+	 Variável: OPdwCmd  Bit:  1  =  Abrir Válvula
+	***********************************************)
+	//==========================================================================================================
+	//                                        Válvula Normal Fechada
+	//==========================================================================================================
+	IF #INV_VAL = FALSE THEN
+	    IF #M_LOC_REM = TRUE THEN
+	        IF #M_AUTO_MAN = TRUE THEN
+	            // Abrir/Fechar Válvula Normal Fechada(AUTOMATICO)==============================================
+	            IF (#INTER_AUTO = TRUE AND #EMERGENCIA = TRUE AND (#ABRIR_AUTO AND #PERMISSAO)) THEN
+	                #M_ABRIR := TRUE;
+	                #HmiData.Op_Dw_Cmd.%X0 := #M_ABRIR;
+	            ELSIF (#INTER_AUTO = FALSE OR #EMERGENCIA = FALSE OR #FECHAR_AUTO) THEN
+	                #M_ABRIR := FALSE;
+	                #HmiData.Op_Dw_Cmd.%X1 := #M_ABRIR;
+	            END_IF;
+	            // Abrir/Fechar Válvula Normal Fechada(MANUAL)==================================================
+	        ELSE
+	            IF (#INTER_MAN = TRUE AND #EMERGENCIA = TRUE AND (#ABRIR_MAN OR (#HmiData.Op_Dw_Cmd.%X1 AND #MODO_CMD_SUP)) AND #PERMISSAO) THEN
+	                #M_ABRIR := TRUE;
+	                #HmiData.Op_Dw_Cmd.%X1 := FALSE;
+	            ELSIF (#INTER_MAN = FALSE OR #EMERGENCIA = FALSE OR (#FECHAR_MAN OR (#HmiData.Op_Dw_Cmd.%X0 AND #MODO_CMD_SUP))) THEN
+	                #M_ABRIR := FALSE;
+	                #HmiData.Op_Dw_Cmd.%X0 := FALSE;
+	            END_IF;
+	        END_IF;
+	        // Abrir/Fechar Válvula Normal Fechada (LOCAL)======================================================
+	    ELSE
+	        IF (#INTER_LOCAL = TRUE AND #EMERGENCIA = TRUE AND (#ABRIR_LOCAL AND #PERMISSAO)) THEN
+	            #M_ABRIR := TRUE;
+	        ELSIF (#INTER_LOCAL = FALSE OR #EMERGENCIA = FALSE OR #FECHAR_LOCAL) THEN
+	            #M_ABRIR := FALSE;
+	        END_IF;
+	    END_IF;
+	    #M_FECHAR := NOT #M_ABRIR;
+	//==========================================================================================================
+	//                                        Válvula Normal Aberta
+	//==========================================================================================================
+	ELSE
+	    IF #M_LOC_REM = TRUE THEN
+	        IF #M_AUTO_MAN = TRUE THEN
+	            // Abrir/Fechar Válvula Normal Aberta(AUTOMATICO)===============================================
+	            IF (#INTER_AUTO = TRUE AND #EMERGENCIA = TRUE AND (#FECHAR_AUTO AND #PERMISSAO)) THEN
+	                #M_FECHAR := TRUE;
+	                #HmiData.Op_Dw_Cmd.%X0 := #M_FECHAR;
+	            ELSIF (#INTER_AUTO = FALSE OR #EMERGENCIA = FALSE OR #ABRIR_AUTO) THEN
+	                #M_FECHAR := FALSE;
+	                #HmiData.Op_Dw_Cmd.%X1 := #M_FECHAR;
+	            END_IF;
+	            // Abrir/Fechar Válvula Normal Aberta(MANUAL)===================================================
+	        ELSE
+	            IF (#INTER_MAN = TRUE AND #EMERGENCIA = TRUE AND (#FECHAR_MAN OR (#HmiData.Op_Dw_Cmd.%X0 AND #MODO_CMD_SUP)) AND #PERMISSAO) THEN
+	                #M_FECHAR := TRUE;
+	                #HmiData.Op_Dw_Cmd.%X0 := FALSE;
+	            ELSIF (#INTER_MAN = FALSE OR #EMERGENCIA = FALSE OR (#ABRIR_MAN OR (#HmiData.Op_Dw_Cmd.%X1 AND #MODO_CMD_SUP))) THEN
+	                #M_FECHAR := FALSE;
+	                #HmiData.Op_Dw_Cmd.%X1 := FALSE;
+	            END_IF;
+	        END_IF;
+	        // Abrir/Fechar Válvula Normal Aberta(LOCAL)========================================================
+	    ELSE
+	        IF (#INTER_LOCAL = TRUE AND #EMERGENCIA = TRUE AND (#FECHAR_LOCAL AND #PERMISSAO)) THEN
+	            #M_FECHAR := TRUE;
+	        ELSIF (#INTER_LOCAL = FALSE OR #EMERGENCIA = FALSE OR #ABRIR_LOCAL) THEN
+	            #M_FECHAR := FALSE;
+	        END_IF;
+	    END_IF;
+	    #M_ABRIR := NOT #M_FECHAR;
+	END_IF;
+	
+	(*******************************************************************
+	 Network 8: Indicações ABERTA/FECHADA
+	********************************************************************)    
+	IF (#M_MON = TRUE AND #M_SIM_ON = FALSE AND #M_ABRIR = TRUE AND #M_SEL_FC_ABERTA = TRUE AND #FC_ABERTO = TRUE) OR
+	    (#M_MON = TRUE AND #M_SIM_ON = FALSE AND #M_ABRIR = TRUE AND #M_SEL_FC_ABERTA = FALSE) OR
+	    (#M_MON = FALSE AND #M_SIM_ON = FALSE AND #M_ABRIR = TRUE) OR
+	    (#M_MON = TRUE AND #M_SIM_ON = TRUE AND #M_ABRIR = TRUE AND #M_SEL_FC_ABERTA = TRUE AND #MON_ABERTA_SIM = TRUE) OR
+	    (#M_MON = TRUE AND #M_SIM_ON = TRUE AND #M_ABRIR = TRUE AND #M_SEL_FC_ABERTA = FALSE) OR
+	    (#M_MON = FALSE AND #M_SIM_ON = TRUE AND #M_ABRIR = TRUE) THEN
+	    #M_ABERTA := TRUE;
+	    #M_FECHADA := FALSE;
+	ELSIF
+	    (#M_MON = TRUE AND #M_SIM_ON = FALSE AND #M_FECHAR = TRUE AND #M_SEL_FC_FECHADA = TRUE AND #FC_FECHADO = TRUE) OR
+	    (#M_MON = TRUE AND #M_SIM_ON = FALSE AND #M_FECHAR = TRUE AND #M_SEL_FC_FECHADA = FALSE) OR
+	    (#M_MON = FALSE AND #M_SIM_ON = FALSE AND #M_FECHAR = TRUE) OR
+	    (#M_MON = TRUE AND #M_SIM_ON = TRUE AND #M_FECHAR = TRUE AND #M_SEL_FC_FECHADA = TRUE AND #MON_FECHADA_SIM = TRUE) OR
+	    (#M_MON = TRUE AND #M_SIM_ON = TRUE AND #M_FECHAR = TRUE AND #M_SEL_FC_FECHADA = FALSE) OR
+	    (#M_MON = FALSE AND #M_SIM_ON = TRUE AND #M_FECHAR = TRUE) THEN
+	    #M_ABERTA := FALSE;
+	    #M_FECHADA := TRUE;
+	END_IF;
+	       
+	(*******************************************************************
+	 Network 9: Tempos para Gerar falha Abertura/Fechamento
+	********************************************************************)
+	IF #M_SIM_ON = FALSE AND #M_MON = TRUE THEN
+	    //Monitoração em Modo de Operação
+	    #TON_ABERTURA(IN := (#M_ABRIR = TRUE AND #M_SEL_FC_ABERTA = TRUE AND #FC_ABERTO = FALSE),
+	                  PT := (REAL_TO_DINT(#TP_FALHA) * 1000));
+	    
+	    #TON_FECHAMENTO(IN := (#M_FECHAR = TRUE AND #M_SEL_FC_FECHADA = TRUE AND #FC_FECHADO = FALSE),
+	                    PT := (REAL_TO_DINT(#TP_FALHA) * 1000));
+	    
+	    #TON_FC(IN := (#M_SEL_FC_ABERTA = TRUE AND #FC_ABERTO = TRUE AND #M_SEL_FC_FECHADA = TRUE AND #FC_FECHADO = TRUE),
+	            PT := (REAL_TO_DINT(5) * 1000));
+	    
+	    //Falha na Abertura da Válvula
+	    IF #TON_ABERTURA.Q THEN
+	        #M_FALHA_ABERTURA := TRUE;
+	    END_IF;
+	    //Falha no Fechamento da Válvula
+	    IF #TON_FECHAMENTO.Q THEN
+	        #M_FALHA_FECHAMENTO := TRUE;
+	    END_IF;
+	    
+	    //Falha Fins de Curso em "1"
+	    IF #TON_FC.Q THEN
+	        #M_FALHA_FC := true;
+	    END_IF;
+	    
+	    //Falha Monitoração de Feedback
+	    #M_FALHA_MON := #M_FALHA_ABERTURA = TRUE OR #M_FALHA_FECHAMENTO OR #M_FALHA_FC = TRUE;
+	    
+	ELSIF #M_SIM_ON = TRUE AND #M_MON = TRUE THEN
+	    // Monitoração em Modo de Simulação
+	    #TON_ABERTURA_SIM(IN := (#M_ABRIR = TRUE),
+	                      PT := (REAL_TO_DINT(#HmiData.Op_Tp_Indicacao_Sim) * 1000),
+	                      Q => #MON_ABERTA_SIM);
+	    
+	    #TON_FECHAMENTO_SIM(IN := (#M_FECHAR = TRUE),
+	                        PT := (REAL_TO_DINT(#HmiData.Op_Tp_Indicacao_Sim) * 1000),
+	                        Q => #MON_FECHADA_SIM);
+	END_IF;
+	
+	(**********************************************
+	 Network 10: Falha na Válvula
+	***********************************************)
+	IF #M_FALHA_FC OR #M_FALHA_MON THEN
+	    #M_FALHA := TRUE;
+	END_IF;
+	
+	(**********************************************
+	 Network 16: Variaveis para IHM
+	***********************************************)
+	#HmiData.Instance := #INSTANCE;
+	
+	(*******************************************************************
+	 Network 7: Escreve Variáveis Internas para Saída
+	********************************************************************)
+	#Q_ABRIR := #M_ABRIR;
+	#Q_FECHAR := #M_FECHAR;
+	#Q_ABERTA := #M_ABERTA;
+	#Q_FECHADA := #M_FECHADA;
+	#Q_AUTO_MAN := #M_AUTO_MAN;
+	#Q_LOC_REM := #M_LOC_REM;
+	#Q_SIM := #M_SIM_ON;
+	#Q_MON := #M_MON;
+	#Q_FALHA_MON := #M_FALHA_MON;
+	#Q_FALHA := #M_FALHA;
+	
+	(**********************************************
+	 Network 19: Status Bit IHM
+	***********************************************)
+	#HmiData.QdwStatus.%X0 := #MODO_OP_SUP;
+	#HmiData.QdwStatus.%X1 := #MODO_CONT_SUP;
+	#HmiData.QdwStatus.%X2 := #MODO_SIM_SUP;
+	#HmiData.QdwStatus.%X3 := #MODO_MON_SUP;
+	#HmiData.QdwStatus.%X4 := FALSE;
+	#HmiData.QdwStatus.%X5 := #MODO_CMD_SUP;
+	#HmiData.QdwStatus.%X6 := FALSE;
+	#HmiData.QdwStatus.%X7 := FALSE;
+	#HmiData.QdwStatus.%X8 := #M_ABERTA;
+	#HmiData.QdwStatus.%X9 := #M_FECHADA;
+	#HmiData.QdwStatus.%X10 := #M_AUTO_MAN;
+	#HmiData.QdwStatus.%X11 := #M_LOC_REM;
+	#HmiData.QdwStatus.%X12 := #M_FALHA_MON;
+	#HmiData.QdwStatus.%X13 := #M_FALHA_FC;
+	#HmiData.QdwStatus.%X14 := FALSE;
+	#HmiData.QdwStatus.%X15 := #M_FALHA;
+	#HmiData.QdwStatus.%X16 := #M_SIM_ON;
+	#HmiData.QdwStatus.%X17 := #M_MON;
+	#HmiData.QdwStatus.%X18 := #M_LOC_REM = TRUE AND #M_AUTO_MAN = TRUE AND #INTER_AUTO OR
+	#M_LOC_REM = TRUE AND #M_AUTO_MAN = FALSE AND #INTER_MAN OR
+	#M_LOC_REM = FALSE AND #INTER_LOCAL;
+	#HmiData.QdwStatus.%X19 := #PERMISSAO;
+	#HmiData.QdwStatus.%X20 := #M_SEL_FC_ABERTA;
+	#HmiData.QdwStatus.%X21 := #M_SEL_FC_FECHADA;
+	#HmiData.QdwStatus.%X22 := FALSE;
+	#HmiData.QdwStatus.%X23 := FALSE;
+	#HmiData.QdwStatus.%X24 := FALSE;
+	#HmiData.QdwStatus.%X25 := FALSE;
+	#HmiData.QdwStatus.%X26 := FALSE;
+	#HmiData.QdwStatus.%X27 := FALSE;
+	#HmiData.QdwStatus.%X28 := FALSE;
+	#HmiData.QdwStatus.%X29 := FALSE;
+	#HmiData.QdwStatus.%X30 := #M_ABRIR;
+	#HmiData.QdwStatus.%X31 := #M_FECHAR;
+	
+	(**********************************************
+	 Network 14: Status da Válvula
+	***********************************************)
+	//#FALHA ABERTURA DA VÁLVULA
+	IF #M_FALHA_ABERTURA = TRUE THEN
+	    #HmiData.Stw_Val := 30;
+	    
+	    //#FALHA FECHAMENTO DA VÁLVULA
+	ELSIF #M_FALHA_FECHAMENTO = TRUE THEN
+	    #HmiData.Stw_Val := 31;
+	    
+	    //Falha Fins de Curso em "1"
+	ELSIF #M_FALHA_FC = TRUE THEN
+	    #HmiData.Stw_Val := 32;
+	    
+	    // #EMERGENCIA ACIONADA
+	ELSIF #EMERGENCIA = FALSE THEN
+	    #HmiData.Stw_Val := 35;
+	    
+	    // ABRINDO EM #MANUAL
+	ELSIF #M_AUTO_MAN = FALSE AND #M_LOC_REM = TRUE AND #M_FALHA = FALSE AND #M_ABRIR = TRUE AND #M_ABERTA = FALSE THEN
+	    #HmiData.Stw_Val := 5;
+	    
+	    // ABERTO EM #MANUAL
+	ELSIF #M_AUTO_MAN = FALSE AND #M_LOC_REM = TRUE AND #M_FALHA = FALSE AND #M_ABRIR = TRUE AND #M_ABERTA = TRUE THEN
+	    #HmiData.Stw_Val := 6;
+	    
+	    // FECHANDO EM MANUAL
+	ELSIF #M_AUTO_MAN = FALSE AND #M_LOC_REM = TRUE AND #M_FALHA = FALSE AND #M_FECHAR = TRUE AND #M_FECHADA = FALSE AND NOT (#ABRIR_MAN AND #HmiData.Op_Dw_Cmd.%X1) THEN
+	    #HmiData.Stw_Val := 7;
+	    
+	    // FECHADO EM MANUAL
+	ELSIF #M_AUTO_MAN = FALSE AND #M_LOC_REM = TRUE AND #M_FALHA = FALSE AND #M_FECHAR = TRUE AND #M_FECHADA = TRUE AND NOT (#ABRIR_MAN OR #HmiData.Op_Dw_Cmd.%X1) THEN
+	    #HmiData.Stw_Val := 8;
+	    
+	    // ABRINDO EM AUTOMATICO
+	ELSIF #M_AUTO_MAN = TRUE AND #M_LOC_REM = TRUE AND #M_FALHA = FALSE AND #M_ABRIR = TRUE AND #M_ABERTA = FALSE THEN
+	    #HmiData.Stw_Val := 9;
+	    
+	    // ABERTO EM AUTOMATICO
+	ELSIF #M_AUTO_MAN = TRUE AND #M_LOC_REM = TRUE AND #M_FALHA = FALSE AND #M_ABRIR = TRUE AND #M_ABERTA = TRUE THEN
+	    #HmiData.Stw_Val := 10;
+	    
+	    // FECHANDO EM AUTOMATICO
+	ELSIF #M_AUTO_MAN = TRUE AND #M_LOC_REM = TRUE AND #M_FALHA = FALSE AND #M_FECHAR = TRUE AND #M_FECHADA = FALSE AND #ABRIR_AUTO = FALSE THEN
+	    #HmiData.Stw_Val := 11;
+	    
+	    // FECHADO AUTOMATICO
+	ELSIF #M_AUTO_MAN = TRUE AND #M_LOC_REM = TRUE AND #M_FALHA = FALSE AND #M_FECHAR = TRUE AND #M_FECHADA = TRUE AND #ABRIR_AUTO = FALSE THEN
+	    #HmiData.Stw_Val := 12;
+	    
+	    // INTERTRAVADO EM MANUAL
+	ELSIF #M_AUTO_MAN = FALSE AND #M_LOC_REM = TRUE AND #M_FALHA = FALSE AND #INTER_MAN = FALSE AND (#ABRIR_MAN OR #HmiData.Op_Dw_Cmd.%X1) THEN
+	    #HmiData.Stw_Val := 13;
+	    
+	    // INTERTRAVADO EM AUTOMATICO
+	ELSIF #M_AUTO_MAN = TRUE AND #M_LOC_REM = TRUE AND #M_FALHA = FALSE AND #INTER_AUTO = FALSE AND #ABRIR_AUTO = TRUE THEN
+	    #HmiData.Stw_Val := 14;
+	    
+	    // ABRINDO EM MODO LOCAL
+	ELSIF #M_LOC_REM = FALSE AND #M_FALHA = FALSE AND #M_ABRIR = TRUE AND #M_ABERTA = FALSE THEN
+	    #HmiData.Stw_Val := 15;
+	    
+	    // ABERTO EM MODO LOCAL
+	ELSIF #M_LOC_REM = FALSE AND #M_FALHA = FALSE AND #M_ABRIR = TRUE AND #M_ABERTA = TRUE THEN
+	    #HmiData.Stw_Val := 16;
+	    
+	    // FECHANDO EM MODO LOCAL
+	ELSIF #M_LOC_REM = FALSE AND #M_FALHA = FALSE AND #M_FECHAR = TRUE AND #M_FECHADA = FALSE AND #ABRIR_LOCAL = FALSE THEN
+	    #HmiData.Stw_Val := 17;
+	    
+	    // FECHADO EM MODO LOCAL
+	ELSIF #M_LOC_REM = FALSE AND #M_FALHA = FALSE AND #M_FECHAR = TRUE AND #M_FECHADA = TRUE AND #ABRIR_LOCAL = FALSE THEN
+	    #HmiData.Stw_Val := 18;
+	    
+	    // INTERTRAVADO EM MODO LOCAL
+	ELSIF #M_LOC_REM = FALSE AND #M_FALHA = FALSE AND #INTER_LOCAL = FALSE AND #ABRIR_LOCAL = TRUE THEN
+	    #HmiData.Stw_Val := 19;
+	END_IF;
+	
+	#STW_VAL := #HmiData.Stw_Val;
+	
+	(*********************************************************
+	Network 17: Falhas para Supervisório
+	**********************************************************) 
+	
+	//FALHA NA ABERTURA
+	#Falha_Abertura(SIG := #M_FALHA_ABERTURA,
+	                SD_1 := #TEXTO_ALARME,
+	                SD_2 := #AREA_ALARME,
+	                SD_5 := "S0231_USER".USER_NAME,
+	                SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	//FALHA NO FECHAMENTO
+	#Falha_Fechamento(SIG := #M_FALHA_FECHAMENTO,
+	                  SD_1 := #TEXTO_ALARME,
+	                  SD_2 := #AREA_ALARME,
+	                  SD_5 := "S0231_USER".USER_NAME,
+	                  SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	//FALHA FINS DE CURSO EM "1"
+	#Falha_Fins_Curso(SIG := #M_FALHA_FC,
+	                  SD_1 := #TEXTO_ALARME,
+	                  SD_2 := #AREA_ALARME,
+	                  SD_5 := "S0231_USER".USER_NAME,
+	                  SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	(**************************************************
+	 Network 18: Reset Palavra de Comando Supervisório
+	***************************************************)
+	IF #HmiData.Op_Dw_Cmd <> 0 THEN
+	    #HmiData.Op_Dw_Cmd := 0;
+	END_IF;
+	END_IF;
+	
+	(**********************************************************
+	 Network 19: Escreve Valores Atuais Memorias dos Eventos
+	***********************************************************)
+	#Op_Tp_Falha_Ult_Valor := #HmiData.Op_Tp_Falha;
+	#Op_Tp_Sim_Ult_Valor := #HmiData.Op_Tp_Indicacao_Sim;
+	
+	
+	
+END_FUNCTION_BLOCK
+

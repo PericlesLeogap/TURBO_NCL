@@ -1,0 +1,115 @@
+﻿FUNCTION_BLOCK "S0811_RECIPES_LIST"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR RETAIN
+      ls_aiID : Array[0..150] of Int;
+      ls_astrName : Array[0..150] of String[20];
+   END_VAR
+   VAR 
+      ls_iIteracao1 : Int;
+      ls_iIteracao2 : Int;
+      ls_bExistingRecipe : Bool;
+      ls_iPivotID : Int;
+      ls_strPivotName : String[50];
+      ls_aiIDDropList : Array[1..15] of Int;
+      ls_astrDropList : Array[1..15] of String[20];
+   END_VAR
+   VAR RETAIN
+      ls_iRecipePage : Int;
+      ls_iLastPosition : Int;
+   END_VAR
+   VAR 
+      ls_iLastID : Int;
+   END_VAR
+
+
+BEGIN
+	REGION Cadastro de novas receitas
+	    IF "S0921_ManipulacaoReceitas_DB".RecipeEdit.bTriggerEditSAVE THEN
+	        //Procura se o ID existe na lista
+	        FOR #ls_iIteracao1 := 1 TO 150 DO
+	            IF #ls_aiID[#ls_iIteracao1] = "S0921_ManipulacaoReceitas_DB".RecipeEdit.iRecipeID THEN
+	                #ls_astrName[#ls_iIteracao1] := "S0921_ManipulacaoReceitas_DB".RecipeEdit.Recipe.strRoasterRecipeName;
+	                #ls_bExistingRecipe := TRUE;
+	                EXIT;
+	            END_IF;
+	        END_FOR;
+	        //Caso não exista, cadastra e ordena a lista
+	        IF NOT #ls_bExistingRecipe THEN
+	            //Cadastra o novo item na primeira posição do array
+	            #ls_aiID[0] := "S0921_ManipulacaoReceitas_DB".RecipeEdit.iRecipeID;
+	            #ls_astrName[0] := "S0921_ManipulacaoReceitas_DB".RecipeEdit.Recipe.strRoasterRecipeName;
+	            //Ordena a lista levando o maior valor para o final da lista
+	            FOR #ls_iIteracao1 := 0 TO 149 DO
+	                IF #ls_aiID[#ls_iIteracao1] > #ls_aiID[#ls_iIteracao1 + 1] AND #ls_aiID[#ls_iIteracao1 + 1] <> 0 THEN
+	                    #ls_iPivotID := #ls_aiID[#ls_iIteracao1 + 1];
+	                    #ls_strPivotName := #ls_astrName[#ls_iIteracao1 + 1];
+	                    #ls_aiID[#ls_iIteracao1 + 1] := #ls_aiID[#ls_iIteracao1];
+	                    #ls_astrName[#ls_iIteracao1 + 1] := #ls_astrName[#ls_iIteracao1];
+	                    #ls_aiID[#ls_iIteracao1] := #ls_iPivotID;
+	                    #ls_astrName[#ls_iIteracao1] := #ls_strPivotName;
+	                END_IF;
+	            END_FOR;
+	            //Faz o shift da lista para liberar a posição 0 do array
+	            FOR #ls_iIteracao1 := 150 TO 1 BY -1 DO
+	                #ls_aiID[#ls_iIteracao1] := #ls_aiID[#ls_iIteracao1 - 1];
+	                #ls_astrName[#ls_iIteracao1] := #ls_astrName[#ls_iIteracao1 - 1];
+	            END_FOR;
+	            //Verifica a última posição preenchida
+	            FOR #ls_iIteracao1 := 1 TO 150 DO
+	                IF #ls_aiID[#ls_iIteracao1] = 0 THEN
+	                    #ls_iLastPosition := #ls_iIteracao1-1;
+	                    EXIT;
+	                END_IF;
+	            END_FOR;
+	        END_IF;
+	        #ls_bExistingRecipe := FALSE;
+	    END_IF;
+	END_REGION
+	REGION Exclui uma receita
+	    IF "S0921_ManipulacaoReceitas_DB".RecipeEdit.bTriggerEditDELETE THEN
+	        //Encontra a posição da receita deleta
+	        FOR #ls_iIteracao1 := 1 TO 150 DO
+	            IF #ls_aiID[#ls_iIteracao1] = "S0921_ManipulacaoReceitas_DB".RecipeEdit.iRecipeID THEN
+	                //Ordena a lista novamente a partir da posição deletada
+	                FOR #ls_iIteracao2 := #ls_iIteracao1 TO 100 DO
+	                    #ls_aiID[#ls_iIteracao2] := #ls_aiID[#ls_iIteracao2 + 1];
+	                    #ls_astrName[#ls_iIteracao2] := #ls_astrName[#ls_iIteracao2 + 1];
+	                END_FOR;
+	            END_IF;
+	        END_FOR;
+	    END_IF;
+	    //Verifica a última posição preenchida
+	    FOR #ls_iIteracao1 := 1 TO 150 DO
+	        IF #ls_aiID[#ls_iIteracao1] = 0 THEN
+	            #ls_iLastPosition := #ls_iIteracao1-1;
+	            EXIT;
+	        END_IF;
+	    END_FOR;
+	END_REGION
+	REGION Passa as paginas de
+	    //Restringe os valores de página
+	    IF #ls_iRecipePage < 0 THEN
+	        #ls_iRecipePage := 0;
+	    ELSIF #ls_iRecipePage > 135 THEN
+	        #ls_iRecipePage := 135;
+	    END_IF;
+	    FOR #ls_iIteracao1 := 1 TO 15 DO
+	        #ls_aiIDDropList[#ls_iIteracao1] := #ls_aiID[#ls_iIteracao1 + #ls_iRecipePage];
+	        #ls_astrDropList[#ls_iIteracao1] := #ls_astrName[#ls_iIteracao1 + #ls_iRecipePage];
+	    END_FOR;
+	END_REGION
+	REGION Move nome da receita para Torrador pelo ID
+	    IF "S0921_ManipulacaoReceitas_DB".RecipeCommand.RecipeID <> #ls_iLastID THEN
+	        FOR #ls_iIteracao1 := 1 TO 150 DO
+	            IF #ls_aiID[#ls_iIteracao1] = "S0921_ManipulacaoReceitas_DB".RecipeCommand.RecipeID THEN
+	                "S0921_ManipulacaoReceitas_DB".RecipeCommand.RoasterRcpName := #ls_astrName[#ls_iIteracao1];
+	                EXIT;
+	            END_IF;
+	        END_FOR;
+	        #ls_iLastID := "S0921_ManipulacaoReceitas_DB".RecipeCommand.RecipeID;
+	    END_IF;
+	END_REGION
+	                
+END_FUNCTION_BLOCK
+

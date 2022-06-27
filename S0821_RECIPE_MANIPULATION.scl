@@ -1,0 +1,934 @@
+﻿FUNCTION_BLOCK "S0821_RECIPE_MANIPULATION"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR 
+      ls_iIteracao1 : Int;
+      ls_iIteracao2 : Int;
+      ls_audtC1MachineProcess : Array[0..6] of "udt_CompleteRecipe";
+      ls_audtC2MachineProcess : Array[0..6] of "udt_CompleteRecipe";
+      RecipeMirror : Struct
+         RecipeID : Int;
+         TriggerEditLOAD : Bool;
+         TriggerEditSAVE : Bool;
+         Recipe { S7_SetPoint := 'False'} : "udt_Recipe";
+      END_STRUCT;
+      RecipeEdit : Struct
+         iRecipeID : Int;
+         bTriggerProfileEdit : Bool;
+         bTriggerEditProfile : Bool;
+         bTriggerEditLOAD : Bool;
+         bTriggerEditSAVE : Bool;
+         bTriggerEditDELETE : Bool;
+         RecipeZero { S7_SetPoint := 'False'} : "udt_Recipe";
+         Recipe { S7_SetPoint := 'False'} : "udt_Recipe";
+         C1ProfileDry { S7_SetPoint := 'False'} : "udt_ProfileRecipe";
+         C1ProfileRoast { S7_SetPoint := 'False'} : "udt_ProfileRecipe";
+         C2ProfileDry : "udt_ProfileRecipe";
+         C2ProfileRoast : "udt_ProfileRecipe";
+         rCoffeeTemperature : Real;
+         rInletTemperature : Real;
+         rBlowerSpeed : Real;
+         rScan_C1DryTemperature : Real;
+         rScan_C1RoastCutTemperature : Real;
+         rScan_C1QuenchTemperature : Real;
+         rScan_C2DryTemperature : Real;
+         rScan_C2RoastCutTemperature : Real;
+         rScan_C2QuenchTemperature : Real;
+         rScan_C1RoastBreaksTemperature : Real;
+         rScan_C2RoastBreaksTemperature : Real;
+      END_STRUCT;
+      ls_bTriggerRefreshSEND : Bool;
+      ls_bTriggerRefreshRECIVE : Bool;
+      ls_bTriggerRefreshRECIPE : Bool;
+      ls_bTriggerC1CopyToZero : Bool;
+      ls_bTriggerC2CopyToZero : Bool;
+      ls_iJobID : Int;
+      ls_bSaveButton : Bool;
+      LastRecipe : Struct
+         Recipe { S7_SetPoint := 'False'} : "udt_Recipe";
+         RecipeID { S7_SetPoint := 'True'} : Int;
+      END_STRUCT;
+      ls_iLastScanID : Int;
+      ls_iLastIDSaved : Int;
+      ls_TONWait {InstructionName := 'TON_TIME'; LibVersion := '1.0'} : TON_TIME;
+      ls_TONWait_IN { S7_SetPoint := 'True'} : Bool;
+      ls_TONWait_PT { S7_SetPoint := 'True'} : Time;
+      ls_TONWait_Q { S7_SetPoint := 'True'} : Bool;
+      RecipeCommand : Struct
+         RecipeID : Int;
+         RoasterRcpName : String[20];
+         C1GreenRcpName : String[20];
+         C2GreenRcpName : String[20];
+         RoastedRcpName : String[20];
+         GreenRcpBatches : Int;
+         DestinationNumber : String[20];
+         EnableID : Bool;
+      END_STRUCT;
+      RecipeLastTrend : Struct
+         RecipeLastEditC1Dry { S7_SetPoint := 'False'} : "udt_ProfileRecipe";
+         RecipeLastEditC1Roast : "udt_ProfileRecipe";
+         RecipeLastEditC2Dry : "udt_ProfileRecipe";
+         RecipeLastEditC2Roast : "udt_ProfileRecipe";
+      END_STRUCT;
+      ls_TONWait_1 {InstructionName := 'TON_TIME'; LibVersion := '1.0'} : TON_TIME;
+      ls_TONWait_1_IN { S7_SetPoint := 'True'} : Bool;
+      ls_TONWait_1_PT { S7_SetPoint := 'True'} : Time;
+      ls_TONWait_1_Q { S7_SetPoint := 'True'} : Bool;
+   END_VAR
+
+
+BEGIN
+	REGION SAVE - LOAD - REFRESH - DELETE
+	    #ls_TONWait_PT := t#1000ms;
+	    #ls_TONWait(IN := #ls_TONWait_IN,
+	                PT := #ls_TONWait_PT,
+	                Q => #ls_TONWait_Q);
+	    #ls_TONWait_1_PT := t#2000ms;
+	    #ls_TONWait_1(IN := #ls_TONWait_1_IN,
+	                  PT := #ls_TONWait_1_PT,
+	                Q => #ls_TONWait_1_Q);
+	    REGION Carrega parâmetros vindos da receita para a edição
+	        //Pega o gatilho de LOAD de receita
+	        IF #RecipeEdit.bTriggerEditLOAD THEN
+	            //Move o parameterID e os parâmetros (Mirror-->Edit)
+	            #RecipeMirror.RecipeID := #RecipeEdit.iRecipeID;
+	            #LastRecipe.Recipe := #RecipeEdit.Recipe;
+	            //Comando carregar receita
+	            #ls_iJobID := 7;
+	            #ls_TONWait_IN := TRUE;
+	            //Carrega receita da memoria para a receita em edicao
+	            IF #ls_TONWait_Q THEN
+	                #RecipeEdit.Recipe := #RecipeMirror.Recipe;
+	                #ls_iJobID := 1;
+	                //Verifica se a receita carregada existe - caso nao exista move receita zero para a receita em edicao
+	                IF #LastRecipe.Recipe = #RecipeEdit.Recipe AND
+	                    #LastRecipe.RecipeID <> #RecipeEdit.iRecipeID THEN
+	                    #RecipeEdit.Recipe := #RecipeEdit.RecipeZero;
+	                    #RecipeMirror.Recipe := #RecipeEdit.RecipeZero;
+	                END_IF;
+	                //Termina processo e ativa trigger para mover valores profile receita (Edit-->Profile)
+	                #ls_TONWait_IN := FALSE;
+	                #LastRecipe.RecipeID := #RecipeEdit.iRecipeID;
+	                #RecipeEdit.bTriggerEditProfile := TRUE;
+	                #RecipeEdit.bTriggerEditLOAD := FALSE;
+	            END_IF;
+	        END_IF;
+	    END_REGION
+	    REGION Salva parâmetros vindos da tela de edição de receitas do supervisório
+	        IF #ls_bSaveButton THEN
+	            FOR #ls_iIteracao1 := 1 TO 5 DO
+	                //Percorre as posições da máquina buscando uma que esteja utilizando o parâmetro salvo e ativa o trigger de refresh send
+	                IF #RecipeEdit.iRecipeID = #ls_audtC1MachineProcess[#ls_iIteracao1].iRecipeID OR #RecipeEdit.iRecipeID = #ls_audtC2MachineProcess[#ls_iIteracao1].iRecipeID THEN
+	                    #ls_bTriggerRefreshSEND := TRUE;
+	                    EXIT;
+	                END_IF;
+	            END_FOR;
+	            //Ativa trigger trigger para mover valores profile receita (Profile-->Edit)
+	            #ls_bSaveButton := FALSE;
+	            #RecipeEdit.bTriggerProfileEdit := TRUE;
+	        END_IF;
+	        //Pega o gatilho de SAVE de receita
+	        IF #RecipeEdit.bTriggerEditSAVE THEN
+	            //Move o parameterID e os parâmetros (Edit-->Mirror)
+	            #RecipeMirror.RecipeID := #RecipeEdit.iRecipeID;
+	            #RecipeMirror.Recipe := #RecipeEdit.Recipe;
+	            //Comando salvar receita
+	            #ls_iJobID := 6;
+	            #ls_TONWait_IN := TRUE;
+	            IF #ls_TONWait_Q THEN
+	                #ls_iJobID := 1;
+	                #LastRecipe.RecipeID := #RecipeEdit.iRecipeID;
+	                #ls_TONWait_IN := FALSE;
+	                #RecipeEdit.bTriggerEditSAVE := FALSE;
+	            END_IF;
+	        END_IF;
+	        
+	
+	    END_REGION
+	    REGION Atualiza receita
+	        //Aguarda o gatilho de Refresh Recive ou Refresh Recipe para copiar a receita alterada para os processos de máquina
+	        IF (#ls_bTriggerRefreshSEND AND #ls_bTriggerRefreshRECIVE) OR #ls_bTriggerRefreshRECIPE THEN
+	            FOR #ls_iIteracao1 := 1 TO 5 DO
+	                //Copia receita da memoria para atual e last Lado 1 (Mirror-->Side1)
+	                IF #ls_audtC1MachineProcess[#ls_iIteracao1].iRecipeID = #RecipeMirror.RecipeID AND #ls_audtC1MachineProcess[#ls_iIteracao1].iRecipeID <> 0 THEN
+	                    #ls_audtC1MachineProcess[#ls_iIteracao1].ActualRecipe := #RecipeMirror.Recipe;
+	                    #ls_audtC1MachineProcess[#ls_iIteracao1].LastScanRecipe := #RecipeMirror.Recipe;
+	                END_IF;
+	                //Copia receita da memoria para atual e last Lado 2 (Mirror-->Side2)
+	                IF #ls_audtC2MachineProcess[#ls_iIteracao1].iRecipeID = #RecipeMirror.RecipeID AND #ls_audtC2MachineProcess[#ls_iIteracao1].iRecipeID <> 0 THEN
+	                    #ls_audtC2MachineProcess[#ls_iIteracao1].ActualRecipe := #RecipeMirror.Recipe;
+	                    #ls_audtC2MachineProcess[#ls_iIteracao1].LastScanRecipe := #RecipeMirror.Recipe;
+	                END_IF;
+	            END_FOR;
+	            //Reseta gatilhos Send e Recive
+	            #ls_bTriggerRefreshSEND := FALSE;
+	            #ls_bTriggerRefreshRECIVE := FALSE;
+	            #ls_bTriggerRefreshRECIPE := FALSE;
+	            //Aguarda o gatilho de Refresh Recive e Reset de Refresh Send para não copiar os parâmetros
+	        ELSIF NOT #ls_bTriggerRefreshSEND AND #ls_bTriggerRefreshRECIVE THEN
+	            //Reseta gatilho de recive
+	            #ls_bTriggerRefreshSEND := FALSE;
+	            #ls_bTriggerRefreshRECIVE := FALSE;
+	        END_IF;
+	    END_REGION
+	    REGION Atualização automática de receitas de posição do equipamento
+	                //Estrutura de captura de mudanças em parâmetros de receita Lado 1
+	        FOR #ls_iIteracao1 := 2 TO 5 DO
+	            IF #ls_audtC1MachineProcess[#ls_iIteracao1].ActualRecipe <> #ls_audtC1MachineProcess[#ls_iIteracao1].LastScanRecipe AND #ls_audtC1MachineProcess[#ls_iIteracao1].iRecipeID <> 0 AND
+	                NOT #ls_audtC1MachineProcess[#ls_iIteracao1].bRecipeChanged THEN
+	                //Indica que houve alteração de parâmetros de receita entre scans
+	                #ls_audtC1MachineProcess[#ls_iIteracao1].bRecipeChanged := TRUE;
+	            END_IF;
+	            IF #ls_audtC2MachineProcess[#ls_iIteracao1].ActualRecipe <> #ls_audtC2MachineProcess[#ls_iIteracao1].LastScanRecipe AND #ls_audtC2MachineProcess[#ls_iIteracao1].iRecipeID <> 0 AND
+	                NOT #ls_audtC2MachineProcess[#ls_iIteracao1].bRecipeChanged THEN
+	                //Indica que houve alteração de parâmetros de receita entre scans
+	                #ls_audtC2MachineProcess[#ls_iIteracao1].bRecipeChanged := TRUE;
+	            END_IF;
+	        END_FOR;
+	            //Atualiza os valores de corte e aromatizacao
+	        FOR #ls_iIteracao1 := 2 TO 5 DO
+	            //Atualiza os valores de corte e de aromatizacao na Camara 1 caso tenha alteracao de valores
+	            IF #ls_audtC1MachineProcess[2].ActualRecipe.rC1RoastQuenchTemperature <> #ls_audtC1MachineProcess[2].LastScanRecipe.rC1RoastQuenchTemperature THEN
+	                #ls_audtC1MachineProcess[2].ActualRecipe.rC1RoastCutTemperature := #ls_audtC1MachineProcess[2].ActualRecipe.rC1RoastQuenchTemperature - #ls_audtC1MachineProcess[2].ActualRecipe.rRoastBreaksTemperature;
+	            END_IF;
+	            IF #ls_audtC1MachineProcess[2].ActualRecipe.rC1RoastCutTemperature <> #ls_audtC1MachineProcess[2].LastScanRecipe.rRoastBreaksTemperature THEN
+	                #ls_audtC1MachineProcess[2].ActualRecipe.rC1RoastQuenchTemperature := #ls_audtC1MachineProcess[2].ActualRecipe.rC1RoastCutTemperature + #ls_audtC1MachineProcess[2].ActualRecipe.rRoastBreaksTemperature;
+	            END_IF;
+	            //Atualiza os valores de corte e de aromatizacao na Camara 2 caso tenha alteracao de valores
+	            IF #ls_audtC2MachineProcess[2].ActualRecipe.rC2RoastQuenchTemperature <> #ls_audtC2MachineProcess[2].LastScanRecipe.rC2RoastQuenchTemperature THEN
+	                #ls_audtC2MachineProcess[2].ActualRecipe.rC2RoastCutTemperature := #ls_audtC1MachineProcess[2].ActualRecipe.rC2RoastQuenchTemperature - #ls_audtC2MachineProcess[2].ActualRecipe.rRoastBreaksTemperature;
+	            END_IF;
+	            IF #ls_audtC2MachineProcess[2].ActualRecipe.rC2RoastCutTemperature <> #ls_audtC2MachineProcess[2].LastScanRecipe.rRoastBreaksTemperature THEN
+	                #ls_audtC2MachineProcess[2].ActualRecipe.rC2RoastQuenchTemperature := #ls_audtC2MachineProcess[2].ActualRecipe.rC2RoastCutTemperature + #ls_audtC1MachineProcess[2].ActualRecipe.rRoastBreaksTemperature;
+	            END_IF;
+	        END_FOR;
+	        //Estrutura que copia a receita com alteração para o mirror e move o mirror para a receita no supervisório Lado 1
+	        FOR #ls_iIteracao1 := 1 TO 5 DO
+	            IF #ls_audtC1MachineProcess[#ls_iIteracao1].bRecipeChanged THEN
+	                //Copia o ID  da receita para o mirror
+	                #RecipeMirror.RecipeID := #ls_audtC1MachineProcess[#ls_iIteracao1].iRecipeID;
+	                //Move a receita com alteração para o mirror
+	                #RecipeMirror.Recipe := #ls_audtC1MachineProcess[#ls_iIteracao1].ActualRecipe;
+	                //Faz o JobID de salvar a receita alterada na tela de operação
+	                #ls_iJobID := 6;
+	                #ls_TONWait_IN := TRUE;
+	                IF #ls_TONWait_Q THEN
+	                    //Zera o JobID
+	                    #ls_iJobID := 1;
+	                    #ls_TONWait_IN := FALSE;
+	                END_IF;
+	                IF #RecipeMirror.Recipe = #ls_audtC1MachineProcess[#ls_iIteracao1].ActualRecipe THEN
+	                    #ls_audtC1MachineProcess[#ls_iIteracao1].LastScanRecipe := #ls_audtC1MachineProcess[#ls_iIteracao1].ActualRecipe;
+	                END_IF;
+	                #ls_bTriggerRefreshRECIPE := TRUE;
+	                #ls_audtC1MachineProcess[#ls_iIteracao1].bRecipeChanged := FALSE;
+	            END_IF;
+	        END_FOR;
+	        //Estrutura que copia a receita com alteração para o mirror e move o mirror para a receita no supervisório Lado 2
+	        FOR #ls_iIteracao1 := 1 TO 5 DO
+	            IF #ls_audtC2MachineProcess[#ls_iIteracao1].bRecipeChanged THEN
+	                //Copia o ID  da receita para o mirror
+	                #RecipeMirror.RecipeID := #ls_audtC2MachineProcess[#ls_iIteracao1].iRecipeID;
+	                //Move a receita com alteração para o mirror
+	                #RecipeMirror.Recipe := #ls_audtC2MachineProcess[#ls_iIteracao1].ActualRecipe;
+	                //Faz o JobID de salvar a receita alterada na tela de operação
+	                #ls_iJobID := 6;
+	                #ls_TONWait_IN := TRUE;
+	                IF #ls_TONWait_Q THEN
+	                    //Zera o JobID
+	                    #ls_iJobID := 1;
+	                    #ls_TONWait_IN := FALSE;
+	                END_IF;
+	                IF #RecipeMirror.Recipe = #ls_audtC2MachineProcess[#ls_iIteracao1].ActualRecipe THEN
+	                    #ls_audtC2MachineProcess[#ls_iIteracao1].LastScanRecipe := #ls_audtC2MachineProcess[#ls_iIteracao1].ActualRecipe;
+	                END_IF;
+	                #ls_bTriggerRefreshRECIPE := TRUE;
+	                #ls_audtC2MachineProcess[#ls_iIteracao1].bRecipeChanged := FALSE;
+	            END_IF;
+	        END_FOR;
+	    END_REGION
+	    REGION Deleta receita selecionada
+	        IF #RecipeEdit.bTriggerEditDELETE THEN
+	            //Move o parameterID e os parâmetros (Mirror-->Edit)
+	            #RecipeMirror.RecipeID := #RecipeEdit.iRecipeID;
+	            #ls_iJobID := 8;
+	            #ls_TONWait_IN := TRUE;
+	            IF #ls_TONWait_Q THEN
+	                #RecipeEdit.Recipe := #RecipeEdit.RecipeZero;
+	                #ls_iJobID := 1;
+	                #ls_TONWait_IN := FALSE;
+	                #RecipeEdit.bTriggerEditDELETE := FALSE;
+	            END_IF;
+	        END_IF;
+	    END_REGION
+	END_REGION
+	REGION Controle de processo de máquina
+	    REGION Move receita selecionada para a posição zero
+	        //Move o mirror para a posição zero da receita Lado 1
+	        IF #ls_bTriggerC1CopyToZero THEN
+	            #RecipeMirror.RecipeID := #RecipeCommand.RecipeID;
+	            #ls_iJobID := 7;
+	            #ls_TONWait_1_IN := TRUE;
+	            IF #ls_TONWait_1_Q THEN
+	                #ls_audtC1MachineProcess[0].ActualRecipe := #RecipeMirror.Recipe;
+	                #ls_audtC1MachineProcess[0].bOkSendRecipe := TRUE;
+	                #ls_audtC1MachineProcess[0].bEmpty := FALSE;
+	                #ls_audtC1MachineProcess[0].iRecipeID := #RecipeMirror.RecipeID;
+	                #ls_iJobID := 1;
+	                #ls_TONWait_1_IN := FALSE;
+	            END_IF;
+	        END_IF;
+	        //Move o mirror para a posição zero da receita Lado 2
+	        IF #ls_bTriggerC2CopyToZero THEN
+	            #RecipeMirror.RecipeID := #RecipeCommand.RecipeID;
+	            #ls_iJobID := 7;
+	            #ls_TONWait_1_IN := TRUE;
+	            IF #ls_TONWait_1_Q THEN
+	                #ls_audtC2MachineProcess[0].ActualRecipe := #RecipeMirror.Recipe;
+	                #ls_audtC2MachineProcess[0].bOkSendRecipe := TRUE;
+	                #ls_audtC2MachineProcess[0].bEmpty := FALSE;
+	                #ls_audtC2MachineProcess[0].iRecipeID := #RecipeMirror.RecipeID;
+	                #ls_iJobID := 1;
+	                #ls_TONWait_1_IN := FALSE;
+	            END_IF;
+	        END_IF;
+	    END_REGION
+	    REGION Controle de transferência de receita dentro do processo
+	        //Lado 1
+	        FOR #ls_iIteracao1 := 5 TO 0 BY -1 DO
+	            IF #ls_audtC1MachineProcess[#ls_iIteracao1 + 1].bOkReciveRecipe AND
+	                #ls_audtC1MachineProcess[#ls_iIteracao1 + 1].bEmpty AND
+	                #ls_audtC1MachineProcess[#ls_iIteracao1].bOkSendRecipe THEN
+	                //Reseta as informações de "ok"
+	                #ls_audtC1MachineProcess[#ls_iIteracao1 + 1].bOkReciveRecipe := FALSE;
+	                #ls_audtC1MachineProcess[#ls_iIteracao1].bOkSendRecipe := FALSE;
+	                //Marca a posição que passou os parâmetros como vazia
+	                #ls_audtC1MachineProcess[#ls_iIteracao1].bEmpty := TRUE;
+	                #ls_audtC1MachineProcess[#ls_iIteracao1].bOkReciveRecipe := TRUE;
+	                //Move a receita e o ID da receita
+	                #ls_audtC1MachineProcess[#ls_iIteracao1 + 1].iRecipeID := #ls_audtC1MachineProcess[#ls_iIteracao1].iRecipeID;
+	                #ls_audtC1MachineProcess[#ls_iIteracao1 + 1].ActualRecipe := #ls_audtC1MachineProcess[#ls_iIteracao1].ActualRecipe;
+	            END_IF;
+	        END_FOR;
+	        //Restaura as informçãoes da posição dummy
+	        #ls_audtC1MachineProcess[6].iRecipeID := 0;
+	        #ls_audtC1MachineProcess[6].bRecipeChanged := FALSE;
+	        #ls_audtC1MachineProcess[6].bEmpty := TRUE;
+	        #ls_audtC1MachineProcess[6].bOkReciveRecipe := TRUE;
+	        #ls_audtC1MachineProcess[6].bOkSendRecipe := TRUE;
+	        #ls_audtC1MachineProcess[6].bTriggerRecive := FALSE;
+	        #ls_audtC1MachineProcess[6].bTriggerSend := FALSE;
+	        //Lado 2
+	        FOR #ls_iIteracao1 := 5 TO 0 BY -1 DO
+	            IF #ls_audtC2MachineProcess[#ls_iIteracao1 + 1].bOkReciveRecipe AND
+	                #ls_audtC2MachineProcess[#ls_iIteracao1 + 1].bEmpty AND
+	                #ls_audtC2MachineProcess[#ls_iIteracao1].bOkSendRecipe THEN
+	                //Reseta as informações de "ok"
+	                #ls_audtC2MachineProcess[#ls_iIteracao1 + 1].bOkReciveRecipe := FALSE;
+	                #ls_audtC2MachineProcess[#ls_iIteracao1].bOkSendRecipe := FALSE;
+	                //Marca a posição que passou os parâmetros como vazia
+	                #ls_audtC2MachineProcess[#ls_iIteracao1].bEmpty := TRUE;
+	                #ls_audtC2MachineProcess[#ls_iIteracao1].bOkReciveRecipe := TRUE;
+	                //Move a receita e o ID da receita
+	                #ls_audtC2MachineProcess[#ls_iIteracao1 + 1].iRecipeID := #ls_audtC1MachineProcess[#ls_iIteracao1].iRecipeID;
+	                #ls_audtC2MachineProcess[#ls_iIteracao1 + 1].ActualRecipe := #ls_audtC1MachineProcess[#ls_iIteracao1].ActualRecipe;
+	            END_IF;
+	        END_FOR;
+	        //Restaura as informçãoes da posição dummy
+	        #ls_audtC2MachineProcess[6].iRecipeID := 0;
+	        #ls_audtC2MachineProcess[6].bRecipeChanged := FALSE;
+	        #ls_audtC2MachineProcess[6].bEmpty := TRUE;
+	        #ls_audtC2MachineProcess[6].bOkReciveRecipe := TRUE;
+	        #ls_audtC2MachineProcess[6].bOkSendRecipe := TRUE;
+	        #ls_audtC2MachineProcess[6].bTriggerRecive := FALSE;
+	        #ls_audtC2MachineProcess[6].bTriggerSend := FALSE;
+	    END_REGION
+	END_REGION
+	REGION Verifica receita em Edição
+	    REGION Move valor da curva para array Profile
+	        IF #RecipeEdit.bTriggerEditProfile THEN
+	            REGION Move valor curva Recipe Edit Secador Lado 1 para array Recipe Edit Secador Lado 1 Profile
+	                //Move valor CoffeeTemperature secador para array secador Profile
+	                #RecipeEdit.C1ProfileDry.arCoffeeTemperature[1] := #RecipeEdit.Recipe.rC1DryCoffeeTemperature1;
+	                #RecipeEdit.C1ProfileDry.arCoffeeTemperature[2] := #RecipeEdit.Recipe.rC1DryCoffeeTemperature2;
+	                #RecipeEdit.C1ProfileDry.arCoffeeTemperature[3] := #RecipeEdit.Recipe.rC1DryCoffeeTemperature3;
+	                #RecipeEdit.C1ProfileDry.arCoffeeTemperature[4] := #RecipeEdit.Recipe.rC1DryCoffeeTemperature4;
+	                #RecipeEdit.C1ProfileDry.arCoffeeTemperature[5] := #RecipeEdit.Recipe.rC1DryCoffeeTemperature5;
+	                #RecipeEdit.C1ProfileDry.arCoffeeTemperature[6] := #RecipeEdit.Recipe.rC1DryCoffeeTemperature6;
+	                #RecipeEdit.C1ProfileDry.arCoffeeTemperature[7] := #RecipeEdit.Recipe.rC1DryCoffeeTemperature7;
+	                #RecipeEdit.C1ProfileDry.arCoffeeTemperature[8] := #RecipeEdit.Recipe.rC1DryCoffeeTemperature8;
+	                #RecipeEdit.C1ProfileDry.arCoffeeTemperature[9] := #RecipeEdit.Recipe.rC1DryCoffeeTemperature9;
+	                #RecipeEdit.C1ProfileDry.arCoffeeTemperature[10] := #RecipeEdit.Recipe.rC1DryCoffeeTemperature10;
+	                //Move valor InputTemperature secador para array secador Profile
+	                #RecipeEdit.C1ProfileDry.arInletTemperature[1] := #RecipeEdit.Recipe.rC1DryInletTemperature1;
+	                #RecipeEdit.C1ProfileDry.arInletTemperature[2] := #RecipeEdit.Recipe.rC1DryInletTemperature2;
+	                #RecipeEdit.C1ProfileDry.arInletTemperature[3] := #RecipeEdit.Recipe.rC1DryInletTemperature3;
+	                #RecipeEdit.C1ProfileDry.arInletTemperature[4] := #RecipeEdit.Recipe.rC1DryInletTemperature4;
+	                #RecipeEdit.C1ProfileDry.arInletTemperature[5] := #RecipeEdit.Recipe.rC1DryInletTemperature5;
+	                #RecipeEdit.C1ProfileDry.arInletTemperature[6] := #RecipeEdit.Recipe.rC1DryInletTemperature6;
+	                #RecipeEdit.C1ProfileDry.arInletTemperature[7] := #RecipeEdit.Recipe.rC1DryInletTemperature7;
+	                #RecipeEdit.C1ProfileDry.arInletTemperature[8] := #RecipeEdit.Recipe.rC1DryInletTemperature8;
+	                #RecipeEdit.C1ProfileDry.arInletTemperature[9] := #RecipeEdit.Recipe.rC1DryInletTemperature9;
+	                #RecipeEdit.C1ProfileDry.arInletTemperature[10] := #RecipeEdit.Recipe.rC1DryInletTemperature10;
+	                //Move valor BlowerSpeed secador para array secador Profile
+	                #RecipeEdit.C1ProfileDry.arBlowerSpeed[1] := #RecipeEdit.Recipe.rC1DryBlowerSpeed1;
+	                #RecipeEdit.C1ProfileDry.arBlowerSpeed[2] := #RecipeEdit.Recipe.rC1DryBlowerSpeed2;
+	                #RecipeEdit.C1ProfileDry.arBlowerSpeed[3] := #RecipeEdit.Recipe.rC1DryBlowerSpeed3;
+	                #RecipeEdit.C1ProfileDry.arBlowerSpeed[4] := #RecipeEdit.Recipe.rC1DryBlowerSpeed4;
+	                #RecipeEdit.C1ProfileDry.arBlowerSpeed[5] := #RecipeEdit.Recipe.rC1DryBlowerSpeed5;
+	                #RecipeEdit.C1ProfileDry.arBlowerSpeed[6] := #RecipeEdit.Recipe.rC1DryBlowerSpeed6;
+	                #RecipeEdit.C1ProfileDry.arBlowerSpeed[7] := #RecipeEdit.Recipe.rC1DryBlowerSpeed7;
+	                #RecipeEdit.C1ProfileDry.arBlowerSpeed[8] := #RecipeEdit.Recipe.rC1DryBlowerSpeed8;
+	                #RecipeEdit.C1ProfileDry.arBlowerSpeed[9] := #RecipeEdit.Recipe.rC1DryBlowerSpeed9;
+	                #RecipeEdit.C1ProfileDry.arBlowerSpeed[10] := #RecipeEdit.Recipe.rC1DryBlowerSpeed10;
+	            END_REGION
+	            REGION Move valor curva Recipe Edit Torrador Lado 1 para array Recipe Edit Torrador Lado 1 Profile
+	                //Move valor CoffeeTemperature Torrador para array Torrador Profile
+	                #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[1] := #RecipeEdit.Recipe.rC1RoastCoffeeTemperature1;
+	                #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[2] := #RecipeEdit.Recipe.rC1RoastCoffeeTemperature2;
+	                #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[3] := #RecipeEdit.Recipe.rC1RoastCoffeeTemperature3;
+	                #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[4] := #RecipeEdit.Recipe.rC1RoastCoffeeTemperature4;
+	                #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[5] := #RecipeEdit.Recipe.rC1RoastCoffeeTemperature5;
+	                #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[6] := #RecipeEdit.Recipe.rC1RoastCoffeeTemperature6;
+	                #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[7] := #RecipeEdit.Recipe.rC1RoastCoffeeTemperature7;
+	                #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[8] := #RecipeEdit.Recipe.rC1RoastCoffeeTemperature8;
+	                #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[9] := #RecipeEdit.Recipe.rC1RoastCoffeeTemperature9;
+	                #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[10] := #RecipeEdit.Recipe.rC1RoastCoffeeTemperature10;
+	                //Move valor InputTemperature Torrador para array Torrador Profile
+	                #RecipeEdit.C1ProfileRoast.arInletTemperature[1] := #RecipeEdit.Recipe.rC1RoastInletTemperature1;
+	                #RecipeEdit.C1ProfileRoast.arInletTemperature[2] := #RecipeEdit.Recipe.rC1RoastInletTemperature2;
+	                #RecipeEdit.C1ProfileRoast.arInletTemperature[3] := #RecipeEdit.Recipe.rC1RoastInletTemperature3;
+	                #RecipeEdit.C1ProfileRoast.arInletTemperature[4] := #RecipeEdit.Recipe.rC1RoastInletTemperature4;
+	                #RecipeEdit.C1ProfileRoast.arInletTemperature[5] := #RecipeEdit.Recipe.rC1RoastInletTemperature5;
+	                #RecipeEdit.C1ProfileRoast.arInletTemperature[6] := #RecipeEdit.Recipe.rC1RoastInletTemperature6;
+	                #RecipeEdit.C1ProfileRoast.arInletTemperature[7] := #RecipeEdit.Recipe.rC1RoastInletTemperature7;
+	                #RecipeEdit.C1ProfileRoast.arInletTemperature[8] := #RecipeEdit.Recipe.rC1RoastInletTemperature8;
+	                #RecipeEdit.C1ProfileRoast.arInletTemperature[9] := #RecipeEdit.Recipe.rC1RoastInletTemperature9;
+	                #RecipeEdit.C1ProfileRoast.arInletTemperature[10] := #RecipeEdit.Recipe.rC1RoastInletTemperature10;
+	                //Move valor BlowerSpeed Torrador para array Torrador Profile
+	                #RecipeEdit.C1ProfileRoast.arBlowerSpeed[1] := #RecipeEdit.Recipe.rC1RoastBlowerSpeed1;
+	                #RecipeEdit.C1ProfileRoast.arBlowerSpeed[2] := #RecipeEdit.Recipe.rC1RoastBlowerSpeed2;
+	                #RecipeEdit.C1ProfileRoast.arBlowerSpeed[3] := #RecipeEdit.Recipe.rC1RoastBlowerSpeed3;
+	                #RecipeEdit.C1ProfileRoast.arBlowerSpeed[4] := #RecipeEdit.Recipe.rC1RoastBlowerSpeed4;
+	                #RecipeEdit.C1ProfileRoast.arBlowerSpeed[5] := #RecipeEdit.Recipe.rC1RoastBlowerSpeed5;
+	                #RecipeEdit.C1ProfileRoast.arBlowerSpeed[6] := #RecipeEdit.Recipe.rC1RoastBlowerSpeed6;
+	                #RecipeEdit.C1ProfileRoast.arBlowerSpeed[7] := #RecipeEdit.Recipe.rC1RoastBlowerSpeed7;
+	                #RecipeEdit.C1ProfileRoast.arBlowerSpeed[8] := #RecipeEdit.Recipe.rC1RoastBlowerSpeed8;
+	                #RecipeEdit.C1ProfileRoast.arBlowerSpeed[9] := #RecipeEdit.Recipe.rC1RoastBlowerSpeed9;
+	                #RecipeEdit.C1ProfileRoast.arBlowerSpeed[10] := #RecipeEdit.Recipe.rC1RoastBlowerSpeed10;
+	            END_REGION
+	            REGION Move valor curva Recipe Edit Secador Lado 2 para array Recipe Edit Secador Lado 2 Profile
+	                //Move valor CoffeeTemperature secador para array secador Profile
+	                #RecipeEdit.C2ProfileDry.arCoffeeTemperature[1] := #RecipeEdit.Recipe.rC2DryCoffeeTemperature1;
+	                #RecipeEdit.C2ProfileDry.arCoffeeTemperature[2] := #RecipeEdit.Recipe.rC2DryCoffeeTemperature2;
+	                #RecipeEdit.C2ProfileDry.arCoffeeTemperature[3] := #RecipeEdit.Recipe.rC2DryCoffeeTemperature3;
+	                #RecipeEdit.C2ProfileDry.arCoffeeTemperature[4] := #RecipeEdit.Recipe.rC2DryCoffeeTemperature4;
+	                #RecipeEdit.C2ProfileDry.arCoffeeTemperature[5] := #RecipeEdit.Recipe.rC2DryCoffeeTemperature5;
+	                #RecipeEdit.C2ProfileDry.arCoffeeTemperature[6] := #RecipeEdit.Recipe.rC2DryCoffeeTemperature6;
+	                #RecipeEdit.C2ProfileDry.arCoffeeTemperature[7] := #RecipeEdit.Recipe.rC2DryCoffeeTemperature7;
+	                #RecipeEdit.C2ProfileDry.arCoffeeTemperature[8] := #RecipeEdit.Recipe.rC2DryCoffeeTemperature8;
+	                #RecipeEdit.C2ProfileDry.arCoffeeTemperature[9] := #RecipeEdit.Recipe.rC2DryCoffeeTemperature9;
+	                #RecipeEdit.C2ProfileDry.arCoffeeTemperature[10] := #RecipeEdit.Recipe.rC2DryCoffeeTemperature10;
+	                //Move valor InputTemperature secador para array secador Profile
+	                #RecipeEdit.C2ProfileDry.arInletTemperature[1] := #RecipeEdit.Recipe.rC2DryInletTemperature1;
+	                #RecipeEdit.C2ProfileDry.arInletTemperature[2] := #RecipeEdit.Recipe.rC2DryInletTemperature2;
+	                #RecipeEdit.C2ProfileDry.arInletTemperature[3] := #RecipeEdit.Recipe.rC2DryInletTemperature3;
+	                #RecipeEdit.C2ProfileDry.arInletTemperature[4] := #RecipeEdit.Recipe.rC2DryInletTemperature4;
+	                #RecipeEdit.C2ProfileDry.arInletTemperature[5] := #RecipeEdit.Recipe.rC2DryInletTemperature5;
+	                #RecipeEdit.C2ProfileDry.arInletTemperature[6] := #RecipeEdit.Recipe.rC2DryInletTemperature6;
+	                #RecipeEdit.C2ProfileDry.arInletTemperature[7] := #RecipeEdit.Recipe.rC2DryInletTemperature7;
+	                #RecipeEdit.C2ProfileDry.arInletTemperature[8] := #RecipeEdit.Recipe.rC2DryInletTemperature8;
+	                #RecipeEdit.C2ProfileDry.arInletTemperature[9] := #RecipeEdit.Recipe.rC2DryInletTemperature9;
+	                #RecipeEdit.C2ProfileDry.arInletTemperature[10] := #RecipeEdit.Recipe.rC2DryInletTemperature10;
+	                //Move valor BlowerSpeed secador para array secador Profile
+	                #RecipeEdit.C2ProfileDry.arBlowerSpeed[1] := #RecipeEdit.Recipe.rC2DryBlowerSpeed1;
+	                #RecipeEdit.C2ProfileDry.arBlowerSpeed[2] := #RecipeEdit.Recipe.rC2DryBlowerSpeed2;
+	                #RecipeEdit.C2ProfileDry.arBlowerSpeed[3] := #RecipeEdit.Recipe.rC2DryBlowerSpeed3;
+	                #RecipeEdit.C2ProfileDry.arBlowerSpeed[4] := #RecipeEdit.Recipe.rC2DryBlowerSpeed4;
+	                #RecipeEdit.C2ProfileDry.arBlowerSpeed[5] := #RecipeEdit.Recipe.rC2DryBlowerSpeed5;
+	                #RecipeEdit.C2ProfileDry.arBlowerSpeed[6] := #RecipeEdit.Recipe.rC2DryBlowerSpeed6;
+	                #RecipeEdit.C2ProfileDry.arBlowerSpeed[7] := #RecipeEdit.Recipe.rC2DryBlowerSpeed7;
+	                #RecipeEdit.C2ProfileDry.arBlowerSpeed[8] := #RecipeEdit.Recipe.rC2DryBlowerSpeed8;
+	                #RecipeEdit.C2ProfileDry.arBlowerSpeed[9] := #RecipeEdit.Recipe.rC2DryBlowerSpeed9;
+	                #RecipeEdit.C2ProfileDry.arBlowerSpeed[10] := #RecipeEdit.Recipe.rC2DryBlowerSpeed10;
+	            END_REGION
+	            REGION Move valor curva Recipe Edit Torrador Lado 2 para array Recipe Edit Torrador Lado 2 Profile
+	                //Move valor CoffeeTemperature Torrador para array Torrador Profile
+	                #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[1] := #RecipeEdit.Recipe.rC2RoastCoffeeTemperature1;
+	                #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[2] := #RecipeEdit.Recipe.rC2RoastCoffeeTemperature2;
+	                #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[3] := #RecipeEdit.Recipe.rC2RoastCoffeeTemperature3;
+	                #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[4] := #RecipeEdit.Recipe.rC2RoastCoffeeTemperature4;
+	                #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[5] := #RecipeEdit.Recipe.rC2RoastCoffeeTemperature5;
+	                #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[6] := #RecipeEdit.Recipe.rC2RoastCoffeeTemperature6;
+	                #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[7] := #RecipeEdit.Recipe.rC2RoastCoffeeTemperature7;
+	                #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[8] := #RecipeEdit.Recipe.rC2RoastCoffeeTemperature8;
+	                #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[9] := #RecipeEdit.Recipe.rC2RoastCoffeeTemperature9;
+	                #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[10] := #RecipeEdit.Recipe.rC2RoastCoffeeTemperature10;
+	                //Move valor InputTemperature Torrador para array Torrador Profile
+	                #RecipeEdit.C2ProfileRoast.arInletTemperature[1] := #RecipeEdit.Recipe.rC2RoastInletTemperature1;
+	                #RecipeEdit.C2ProfileRoast.arInletTemperature[2] := #RecipeEdit.Recipe.rC2RoastInletTemperature2;
+	                #RecipeEdit.C2ProfileRoast.arInletTemperature[3] := #RecipeEdit.Recipe.rC2RoastInletTemperature3;
+	                #RecipeEdit.C2ProfileRoast.arInletTemperature[4] := #RecipeEdit.Recipe.rC2RoastInletTemperature4;
+	                #RecipeEdit.C2ProfileRoast.arInletTemperature[5] := #RecipeEdit.Recipe.rC2RoastInletTemperature5;
+	                #RecipeEdit.C2ProfileRoast.arInletTemperature[6] := #RecipeEdit.Recipe.rC2RoastInletTemperature6;
+	                #RecipeEdit.C2ProfileRoast.arInletTemperature[7] := #RecipeEdit.Recipe.rC2RoastInletTemperature7;
+	                #RecipeEdit.C2ProfileRoast.arInletTemperature[8] := #RecipeEdit.Recipe.rC2RoastInletTemperature8;
+	                #RecipeEdit.C2ProfileRoast.arInletTemperature[9] := #RecipeEdit.Recipe.rC2RoastInletTemperature9;
+	                #RecipeEdit.C2ProfileRoast.arInletTemperature[10] := #RecipeEdit.Recipe.rC2RoastInletTemperature10;
+	                //Move valor BlowerSpeed Torrador para array Torrador Profile
+	                #RecipeEdit.C2ProfileRoast.arBlowerSpeed[1] := #RecipeEdit.Recipe.rC2RoastBlowerSpeed1;
+	                #RecipeEdit.C2ProfileRoast.arBlowerSpeed[2] := #RecipeEdit.Recipe.rC2RoastBlowerSpeed2;
+	                #RecipeEdit.C2ProfileRoast.arBlowerSpeed[3] := #RecipeEdit.Recipe.rC2RoastBlowerSpeed3;
+	                #RecipeEdit.C2ProfileRoast.arBlowerSpeed[4] := #RecipeEdit.Recipe.rC2RoastBlowerSpeed4;
+	                #RecipeEdit.C2ProfileRoast.arBlowerSpeed[5] := #RecipeEdit.Recipe.rC2RoastBlowerSpeed5;
+	                #RecipeEdit.C2ProfileRoast.arBlowerSpeed[6] := #RecipeEdit.Recipe.rC2RoastBlowerSpeed6;
+	                #RecipeEdit.C2ProfileRoast.arBlowerSpeed[7] := #RecipeEdit.Recipe.rC2RoastBlowerSpeed7;
+	                #RecipeEdit.C2ProfileRoast.arBlowerSpeed[8] := #RecipeEdit.Recipe.rC2RoastBlowerSpeed8;
+	                #RecipeEdit.C2ProfileRoast.arBlowerSpeed[9] := #RecipeEdit.Recipe.rC2RoastBlowerSpeed9;
+	                #RecipeEdit.C2ProfileRoast.arBlowerSpeed[10] := #RecipeEdit.Recipe.rC2RoastBlowerSpeed10;
+	            END_REGION
+	            //Zera tag TriggerEditProfile
+	            #RecipeEdit.bTriggerEditProfile := FALSE;
+	        END_IF;
+	    END_REGION
+	    REGION Move valor do array  Profile para curva
+	        IF #RecipeEdit.bTriggerProfileEdit THEN
+	            REGION Move array Recipe Edit Secador Lado 1 Profile para valor curva Recipe Edit Secador Lado 1
+	                //Move array secador Profile para valor CoffeeTemperature secador
+	                #RecipeEdit.Recipe.rC1DryCoffeeTemperature1 := #RecipeEdit.C1ProfileDry.arCoffeeTemperature[1];
+	                #RecipeEdit.Recipe.rC1DryCoffeeTemperature2 := #RecipeEdit.C1ProfileDry.arCoffeeTemperature[2];
+	                #RecipeEdit.Recipe.rC1DryCoffeeTemperature3 := #RecipeEdit.C1ProfileDry.arCoffeeTemperature[3];
+	                #RecipeEdit.Recipe.rC1DryCoffeeTemperature4 := #RecipeEdit.C1ProfileDry.arCoffeeTemperature[4];
+	                #RecipeEdit.Recipe.rC1DryCoffeeTemperature5 := #RecipeEdit.C1ProfileDry.arCoffeeTemperature[5];
+	                #RecipeEdit.Recipe.rC1DryCoffeeTemperature6 := #RecipeEdit.C1ProfileDry.arCoffeeTemperature[6];
+	                #RecipeEdit.Recipe.rC1DryCoffeeTemperature7 := #RecipeEdit.C1ProfileDry.arCoffeeTemperature[7];
+	                #RecipeEdit.Recipe.rC1DryCoffeeTemperature8 := #RecipeEdit.C1ProfileDry.arCoffeeTemperature[8];
+	                #RecipeEdit.Recipe.rC1DryCoffeeTemperature9 := #RecipeEdit.C1ProfileDry.arCoffeeTemperature[9];
+	                #RecipeEdit.Recipe.rC1DryCoffeeTemperature10 := #RecipeEdit.C1ProfileDry.arCoffeeTemperature[10];
+	                //Move array secador Profile para valor InputTemperature secador
+	                #RecipeEdit.Recipe.rC1DryInletTemperature1 := #RecipeEdit.C1ProfileDry.arInletTemperature[1];
+	                #RecipeEdit.Recipe.rC1DryInletTemperature2 := #RecipeEdit.C1ProfileDry.arInletTemperature[2];
+	                #RecipeEdit.Recipe.rC1DryInletTemperature3 := #RecipeEdit.C1ProfileDry.arInletTemperature[3];
+	                #RecipeEdit.Recipe.rC1DryInletTemperature4 := #RecipeEdit.C1ProfileDry.arInletTemperature[4];
+	                #RecipeEdit.Recipe.rC1DryInletTemperature5 := #RecipeEdit.C1ProfileDry.arInletTemperature[5];
+	                #RecipeEdit.Recipe.rC1DryInletTemperature6 := #RecipeEdit.C1ProfileDry.arInletTemperature[6];
+	                #RecipeEdit.Recipe.rC1DryInletTemperature7 := #RecipeEdit.C1ProfileDry.arInletTemperature[7];
+	                #RecipeEdit.Recipe.rC1DryInletTemperature8 := #RecipeEdit.C1ProfileDry.arInletTemperature[8];
+	                #RecipeEdit.Recipe.rC1DryInletTemperature9 := #RecipeEdit.C1ProfileDry.arInletTemperature[9];
+	                #RecipeEdit.Recipe.rC1DryInletTemperature10 := #RecipeEdit.C1ProfileDry.arInletTemperature[10];
+	                //Move array secador Profile para valor BlowerSpeed secador
+	                #RecipeEdit.Recipe.rC1DryBlowerSpeed1 := #RecipeEdit.C1ProfileDry.arBlowerSpeed[1];
+	                #RecipeEdit.Recipe.rC1DryBlowerSpeed2 := #RecipeEdit.C1ProfileDry.arBlowerSpeed[2];
+	                #RecipeEdit.Recipe.rC1DryBlowerSpeed3 := #RecipeEdit.C1ProfileDry.arBlowerSpeed[3];
+	                #RecipeEdit.Recipe.rC1DryBlowerSpeed4 := #RecipeEdit.C1ProfileDry.arBlowerSpeed[4];
+	                #RecipeEdit.Recipe.rC1DryBlowerSpeed5 := #RecipeEdit.C1ProfileDry.arBlowerSpeed[5];
+	                #RecipeEdit.Recipe.rC1DryBlowerSpeed6 := #RecipeEdit.C1ProfileDry.arBlowerSpeed[6];
+	                #RecipeEdit.Recipe.rC1DryBlowerSpeed7 := #RecipeEdit.C1ProfileDry.arBlowerSpeed[7];
+	                #RecipeEdit.Recipe.rC1DryBlowerSpeed8 := #RecipeEdit.C1ProfileDry.arBlowerSpeed[8];
+	                #RecipeEdit.Recipe.rC1DryBlowerSpeed9 := #RecipeEdit.C1ProfileDry.arBlowerSpeed[9];
+	                #RecipeEdit.Recipe.rC1DryBlowerSpeed10 := #RecipeEdit.C1ProfileDry.arBlowerSpeed[10];
+	            END_REGION
+	            REGION Move array Recipe Edit Torrador Lado 1 Profile para valor curva Recipe Edit Torrador Lado 1
+	                //Move  array Torrador Profile para valor CoffeeTemperature Torrador
+	                #RecipeEdit.Recipe.rC1RoastCoffeeTemperature1 := #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[1];
+	                #RecipeEdit.Recipe.rC1RoastCoffeeTemperature2 := #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[2];
+	                #RecipeEdit.Recipe.rC1RoastCoffeeTemperature3 := #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[3];
+	                #RecipeEdit.Recipe.rC1RoastCoffeeTemperature4 := #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[4];
+	                #RecipeEdit.Recipe.rC1RoastCoffeeTemperature5 := #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[5];
+	                #RecipeEdit.Recipe.rC1RoastCoffeeTemperature6 := #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[6];
+	                #RecipeEdit.Recipe.rC1RoastCoffeeTemperature7 := #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[7];
+	                #RecipeEdit.Recipe.rC1RoastCoffeeTemperature8 := #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[8];
+	                #RecipeEdit.Recipe.rC1RoastCoffeeTemperature9 := #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[9];
+	                #RecipeEdit.Recipe.rC1RoastCoffeeTemperature10 := #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[10];
+	                //Move array Torrador Profile para valor InputTemperature Torrador
+	                #RecipeEdit.Recipe.rC1RoastInletTemperature1 := #RecipeEdit.C1ProfileRoast.arInletTemperature[1];
+	                #RecipeEdit.Recipe.rC1RoastInletTemperature2 := #RecipeEdit.C1ProfileRoast.arInletTemperature[2];
+	                #RecipeEdit.Recipe.rC1RoastInletTemperature3 := #RecipeEdit.C1ProfileRoast.arInletTemperature[3];
+	                #RecipeEdit.Recipe.rC1RoastInletTemperature4 := #RecipeEdit.C1ProfileRoast.arInletTemperature[4];
+	                #RecipeEdit.Recipe.rC1RoastInletTemperature5 := #RecipeEdit.C1ProfileRoast.arInletTemperature[5];
+	                #RecipeEdit.Recipe.rC1RoastInletTemperature6 := #RecipeEdit.C1ProfileRoast.arInletTemperature[6];
+	                #RecipeEdit.Recipe.rC1RoastInletTemperature7 := #RecipeEdit.C1ProfileRoast.arInletTemperature[7];
+	                #RecipeEdit.Recipe.rC1RoastInletTemperature8 := #RecipeEdit.C1ProfileRoast.arInletTemperature[8];
+	                #RecipeEdit.Recipe.rC1RoastInletTemperature9 := #RecipeEdit.C1ProfileRoast.arInletTemperature[9];
+	                #RecipeEdit.Recipe.rC1RoastInletTemperature10 := #RecipeEdit.C1ProfileRoast.arInletTemperature[10];
+	                //Move array Torrador Profile para valor BlowerSpeed Torrador
+	                #RecipeEdit.Recipe.rC1RoastBlowerSpeed1 := #RecipeEdit.C1ProfileRoast.arBlowerSpeed[1];
+	                #RecipeEdit.Recipe.rC1RoastBlowerSpeed2 := #RecipeEdit.C1ProfileRoast.arBlowerSpeed[2];
+	                #RecipeEdit.Recipe.rC1RoastBlowerSpeed3 := #RecipeEdit.C1ProfileRoast.arBlowerSpeed[3];
+	                #RecipeEdit.Recipe.rC1RoastBlowerSpeed4 := #RecipeEdit.C1ProfileRoast.arBlowerSpeed[4];
+	                #RecipeEdit.Recipe.rC1RoastBlowerSpeed5 := #RecipeEdit.C1ProfileRoast.arBlowerSpeed[5];
+	                #RecipeEdit.Recipe.rC1RoastBlowerSpeed6 := #RecipeEdit.C1ProfileRoast.arBlowerSpeed[6];
+	                #RecipeEdit.Recipe.rC1RoastBlowerSpeed7 := #RecipeEdit.C1ProfileRoast.arBlowerSpeed[7];
+	                #RecipeEdit.Recipe.rC1RoastBlowerSpeed8 := #RecipeEdit.C1ProfileRoast.arBlowerSpeed[8];
+	                #RecipeEdit.Recipe.rC1RoastBlowerSpeed9 := #RecipeEdit.C1ProfileRoast.arBlowerSpeed[9];
+	                #RecipeEdit.Recipe.rC1RoastBlowerSpeed10 := #RecipeEdit.C1ProfileRoast.arBlowerSpeed[10];
+	            END_REGION
+	            REGION Move array Recipe Edit Secador Lado 2 Profile para valor curva Recipe Edit Secador Lado 2
+	                //Move array secador Profile para valor CoffeeTemperature secador
+	                #RecipeEdit.Recipe.rC2DryCoffeeTemperature1 := #RecipeEdit.C2ProfileDry.arCoffeeTemperature[1];
+	                #RecipeEdit.Recipe.rC2DryCoffeeTemperature2 := #RecipeEdit.C2ProfileDry.arCoffeeTemperature[2];
+	                #RecipeEdit.Recipe.rC2DryCoffeeTemperature3 := #RecipeEdit.C2ProfileDry.arCoffeeTemperature[3];
+	                #RecipeEdit.Recipe.rC2DryCoffeeTemperature4 := #RecipeEdit.C2ProfileDry.arCoffeeTemperature[4];
+	                #RecipeEdit.Recipe.rC2DryCoffeeTemperature5 := #RecipeEdit.C2ProfileDry.arCoffeeTemperature[5];
+	                #RecipeEdit.Recipe.rC2DryCoffeeTemperature6 := #RecipeEdit.C2ProfileDry.arCoffeeTemperature[6];
+	                #RecipeEdit.Recipe.rC2DryCoffeeTemperature7 := #RecipeEdit.C2ProfileDry.arCoffeeTemperature[7];
+	                #RecipeEdit.Recipe.rC2DryCoffeeTemperature8 := #RecipeEdit.C2ProfileDry.arCoffeeTemperature[8];
+	                #RecipeEdit.Recipe.rC2DryCoffeeTemperature9 := #RecipeEdit.C2ProfileDry.arCoffeeTemperature[9];
+	                #RecipeEdit.Recipe.rC2DryCoffeeTemperature10 := #RecipeEdit.C2ProfileDry.arCoffeeTemperature[10];
+	                //Move array secador Profile para valor InputTemperature secador
+	                #RecipeEdit.Recipe.rC2DryInletTemperature1 := #RecipeEdit.C2ProfileDry.arInletTemperature[1];
+	                #RecipeEdit.Recipe.rC2DryInletTemperature2 := #RecipeEdit.C2ProfileDry.arInletTemperature[2];
+	                #RecipeEdit.Recipe.rC2DryInletTemperature3 := #RecipeEdit.C2ProfileDry.arInletTemperature[3];
+	                #RecipeEdit.Recipe.rC2DryInletTemperature4 := #RecipeEdit.C2ProfileDry.arInletTemperature[4];
+	                #RecipeEdit.Recipe.rC2DryInletTemperature5 := #RecipeEdit.C2ProfileDry.arInletTemperature[5];
+	                #RecipeEdit.Recipe.rC2DryInletTemperature6 := #RecipeEdit.C2ProfileDry.arInletTemperature[6];
+	                #RecipeEdit.Recipe.rC2DryInletTemperature7 := #RecipeEdit.C2ProfileDry.arInletTemperature[7];
+	                #RecipeEdit.Recipe.rC2DryInletTemperature8 := #RecipeEdit.C2ProfileDry.arInletTemperature[8];
+	                #RecipeEdit.Recipe.rC2DryInletTemperature9 := #RecipeEdit.C2ProfileDry.arInletTemperature[9];
+	                #RecipeEdit.Recipe.rC2DryInletTemperature10 := #RecipeEdit.C2ProfileDry.arInletTemperature[10];
+	                //Move array secador Profile para valor BlowerSpeed secador
+	                #RecipeEdit.Recipe.rC2DryBlowerSpeed1 := #RecipeEdit.C2ProfileDry.arBlowerSpeed[1];
+	                #RecipeEdit.Recipe.rC2DryBlowerSpeed2 := #RecipeEdit.C2ProfileDry.arBlowerSpeed[2];
+	                #RecipeEdit.Recipe.rC2DryBlowerSpeed3 := #RecipeEdit.C2ProfileDry.arBlowerSpeed[3];
+	                #RecipeEdit.Recipe.rC2DryBlowerSpeed4 := #RecipeEdit.C2ProfileDry.arBlowerSpeed[4];
+	                #RecipeEdit.Recipe.rC2DryBlowerSpeed5 := #RecipeEdit.C2ProfileDry.arBlowerSpeed[5];
+	                #RecipeEdit.Recipe.rC2DryBlowerSpeed6 := #RecipeEdit.C2ProfileDry.arBlowerSpeed[6];
+	                #RecipeEdit.Recipe.rC2DryBlowerSpeed7 := #RecipeEdit.C2ProfileDry.arBlowerSpeed[7];
+	                #RecipeEdit.Recipe.rC2DryBlowerSpeed8 := #RecipeEdit.C2ProfileDry.arBlowerSpeed[8];
+	                #RecipeEdit.Recipe.rC2DryBlowerSpeed9 := #RecipeEdit.C2ProfileDry.arBlowerSpeed[9];
+	                #RecipeEdit.Recipe.rC2DryBlowerSpeed10 := #RecipeEdit.C2ProfileDry.arBlowerSpeed[10];
+	            END_REGION
+	            REGION Move array Recipe Edit Torrador Lado 2 Profile para valor curva Recipe Edit Torrador Lado 2 
+	                //Move  array Torrador Profile para valor CoffeeTemperature Torrador
+	                #RecipeEdit.Recipe.rC2RoastCoffeeTemperature1 := #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[1];
+	                #RecipeEdit.Recipe.rC2RoastCoffeeTemperature2 := #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[2];
+	                #RecipeEdit.Recipe.rC2RoastCoffeeTemperature3 := #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[3];
+	                #RecipeEdit.Recipe.rC2RoastCoffeeTemperature4 := #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[4];
+	                #RecipeEdit.Recipe.rC2RoastCoffeeTemperature5 := #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[5];
+	                #RecipeEdit.Recipe.rC2RoastCoffeeTemperature6 := #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[6];
+	                #RecipeEdit.Recipe.rC2RoastCoffeeTemperature7 := #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[7];
+	                #RecipeEdit.Recipe.rC2RoastCoffeeTemperature8 := #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[8];
+	                #RecipeEdit.Recipe.rC2RoastCoffeeTemperature9 := #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[9];
+	                #RecipeEdit.Recipe.rC2RoastCoffeeTemperature10 := #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[10];
+	                //Move array Torrador Profile para valor InputTemperature Torrador
+	                #RecipeEdit.Recipe.rC2RoastInletTemperature1 := #RecipeEdit.C2ProfileRoast.arInletTemperature[1];
+	                #RecipeEdit.Recipe.rC2RoastInletTemperature2 := #RecipeEdit.C2ProfileRoast.arInletTemperature[2];
+	                #RecipeEdit.Recipe.rC2RoastInletTemperature3 := #RecipeEdit.C2ProfileRoast.arInletTemperature[3];
+	                #RecipeEdit.Recipe.rC2RoastInletTemperature4 := #RecipeEdit.C2ProfileRoast.arInletTemperature[4];
+	                #RecipeEdit.Recipe.rC2RoastInletTemperature5 := #RecipeEdit.C2ProfileRoast.arInletTemperature[5];
+	                #RecipeEdit.Recipe.rC2RoastInletTemperature6 := #RecipeEdit.C2ProfileRoast.arInletTemperature[6];
+	                #RecipeEdit.Recipe.rC2RoastInletTemperature7 := #RecipeEdit.C2ProfileRoast.arInletTemperature[7];
+	                #RecipeEdit.Recipe.rC2RoastInletTemperature8 := #RecipeEdit.C2ProfileRoast.arInletTemperature[8];
+	                #RecipeEdit.Recipe.rC2RoastInletTemperature9 := #RecipeEdit.C2ProfileRoast.arInletTemperature[9];
+	                #RecipeEdit.Recipe.rC2RoastInletTemperature10 := #RecipeEdit.C2ProfileRoast.arInletTemperature[10];
+	                //Move array Torrador Profile para valor BlowerSpeed Torrador
+	                #RecipeEdit.Recipe.rC2RoastBlowerSpeed1 := #RecipeEdit.C2ProfileRoast.arBlowerSpeed[1];
+	                #RecipeEdit.Recipe.rC2RoastBlowerSpeed2 := #RecipeEdit.C2ProfileRoast.arBlowerSpeed[2];
+	                #RecipeEdit.Recipe.rC2RoastBlowerSpeed3 := #RecipeEdit.C2ProfileRoast.arBlowerSpeed[3];
+	                #RecipeEdit.Recipe.rC2RoastBlowerSpeed4 := #RecipeEdit.C2ProfileRoast.arBlowerSpeed[4];
+	                #RecipeEdit.Recipe.rC2RoastBlowerSpeed5 := #RecipeEdit.C2ProfileRoast.arBlowerSpeed[5];
+	                #RecipeEdit.Recipe.rC2RoastBlowerSpeed6 := #RecipeEdit.C2ProfileRoast.arBlowerSpeed[6];
+	                #RecipeEdit.Recipe.rC2RoastBlowerSpeed7 := #RecipeEdit.C2ProfileRoast.arBlowerSpeed[7];
+	                #RecipeEdit.Recipe.rC2RoastBlowerSpeed8 := #RecipeEdit.C2ProfileRoast.arBlowerSpeed[8];
+	                #RecipeEdit.Recipe.rC2RoastBlowerSpeed9 := #RecipeEdit.C2ProfileRoast.arBlowerSpeed[9];
+	                #RecipeEdit.Recipe.rC2RoastBlowerSpeed10 := #RecipeEdit.C2ProfileRoast.arBlowerSpeed[10];
+	            END_REGION
+	            //Zera tag TriggerEditProfile
+	            #RecipeEdit.bTriggerProfileEdit := FALSE;
+	        END_IF;
+	    END_REGION
+	    REGION Limita os valores máximos das temperaturas de entrada pela temperatura de setpoint da fornalha e limita valor maximo de temperatura do cafe
+	        REGION Move valor da entrada de ar do caso seja maior que a segurança da Fornalha lado 1
+	            //Limita as temperaturas de segunraça do secador e da fornalha
+	            FOR #ls_iIteracao1 := 1 TO 10 DO
+	                //Move entrada de ar do secador
+	                IF #RecipeEdit.C1ProfileDry.arInletTemperature[#ls_iIteracao1] > #RecipeEdit.Recipe.rFurnaceTemperature THEN
+	                    #RecipeEdit.C1ProfileDry.arInletTemperature[#ls_iIteracao1] := #RecipeEdit.Recipe.rFurnaceTemperature;
+	                END_IF;
+	                //Move entrada de ar do torrador
+	                IF #RecipeEdit.C1ProfileRoast.arInletTemperature[#ls_iIteracao1] > #RecipeEdit.Recipe.rFurnaceTemperature THEN
+	                    #RecipeEdit.C1ProfileRoast.arInletTemperature[#ls_iIteracao1] := #RecipeEdit.Recipe.rFurnaceTemperature;
+	                END_IF;
+	                //Limita a temperatura do café no secador
+	                IF #RecipeEdit.C1ProfileDry.arCoffeeTemperature[#ls_iIteracao1] > 200 THEN
+	                    #RecipeEdit.C1ProfileDry.arCoffeeTemperature[#ls_iIteracao1] := 200;
+	                END_IF;
+	                //Limita a temperatura do café no torrador
+	                IF #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[#ls_iIteracao1] > 300 THEN
+	                    #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[#ls_iIteracao1] := 300;
+	                END_IF;
+	            END_FOR;
+	        END_REGION
+	        REGION Move valor da entrada de ar do caso seja maior que a segurança da Fornalha lado 2
+	            //Limita as temperaturas de segunraça do secador e da fornalha
+	            FOR #ls_iIteracao1 := 1 TO 10 DO
+	                //Move entrada de ar do secador
+	                IF #RecipeEdit.C2ProfileDry.arInletTemperature[#ls_iIteracao1] > #RecipeEdit.Recipe.rFurnaceTemperature THEN
+	                    #RecipeEdit.C2ProfileDry.arInletTemperature[#ls_iIteracao1] := #RecipeEdit.Recipe.rFurnaceTemperature;
+	                END_IF;
+	                //Move entrada de ar do torrador
+	                IF #RecipeEdit.C2ProfileRoast.arInletTemperature[#ls_iIteracao1] > #RecipeEdit.Recipe.rFurnaceTemperature THEN
+	                    #RecipeEdit.C2ProfileRoast.arInletTemperature[#ls_iIteracao1] := #RecipeEdit.Recipe.rFurnaceTemperature;
+	                END_IF;
+	                //Limita a temperatura do café no secador
+	                IF #RecipeEdit.C2ProfileDry.arCoffeeTemperature[#ls_iIteracao1] > 200 THEN
+	                    #RecipeEdit.C2ProfileDry.arCoffeeTemperature[#ls_iIteracao1] := 200;
+	                END_IF;
+	                //Limita a temperatura do café no torrador
+	                IF #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[#ls_iIteracao1] > 300 THEN
+	                    #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[#ls_iIteracao1] := 300;
+	                END_IF;
+	            END_FOR;
+	        END_REGION
+	    END_REGION
+	    REGION Move valores da receita no secador caso apague campos da curva Lado 1
+	        FOR #ls_iIteracao1 := 1 TO 10 DO
+	            IF #RecipeEdit.C1ProfileDry.arBlowerSpeed[#ls_iIteracao1] = 0 AND #RecipeEdit.C1ProfileDry.arCoffeeTemperature[#ls_iIteracao1] = 0 AND #RecipeEdit.C1ProfileDry.arInletTemperature[#ls_iIteracao1] = 0 THEN
+	                FOR #ls_iIteracao2 := #ls_iIteracao1 TO 10 DO
+	                    IF #RecipeEdit.C1ProfileDry.arCoffeeTemperature[#ls_iIteracao2 + 1] = 0 THEN
+	                        #RecipeEdit.C1ProfileDry.arBlowerSpeed[#ls_iIteracao2] := #RecipeEdit.C1ProfileDry.arBlowerSpeed[#ls_iIteracao2 + 1];
+	                        #RecipeEdit.C1ProfileDry.arCoffeeTemperature[#ls_iIteracao2] := #RecipeEdit.C1ProfileDry.arCoffeeTemperature[#ls_iIteracao2 + 1];
+	                        #RecipeEdit.C1ProfileDry.arInletTemperature[#ls_iIteracao2] := #RecipeEdit.C1ProfileDry.arInletTemperature[#ls_iIteracao2 + 1];
+	                        EXIT;
+	                    END_IF;
+	                    #RecipeEdit.C1ProfileDry.arBlowerSpeed[#ls_iIteracao2] := #RecipeEdit.C1ProfileDry.arBlowerSpeed[#ls_iIteracao2 + 1];
+	                    #RecipeEdit.C1ProfileDry.arCoffeeTemperature[#ls_iIteracao2] := #RecipeEdit.C1ProfileDry.arCoffeeTemperature[#ls_iIteracao2 + 1];
+	                    #RecipeEdit.C1ProfileDry.arInletTemperature[#ls_iIteracao2] := #RecipeEdit.C1ProfileDry.arInletTemperature[#ls_iIteracao2 + 1];
+	                END_FOR;
+	            END_IF;
+	        END_FOR;
+	    END_REGION
+	    REGION Move valores da receita no torrador caso apague campos da curva Lado 1
+	        FOR #ls_iIteracao1 := 1 TO 10 DO
+	            IF #RecipeEdit.C1ProfileRoast.arBlowerSpeed[#ls_iIteracao1] = 0 AND #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[#ls_iIteracao1] = 0 AND #RecipeEdit.C1ProfileRoast.arInletTemperature[#ls_iIteracao1] = 0 THEN
+	                FOR #ls_iIteracao2 := #ls_iIteracao1 TO 10 DO
+	                    IF #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[#ls_iIteracao2 + 1] = 0 THEN
+	                        #RecipeEdit.C1ProfileRoast.arBlowerSpeed[#ls_iIteracao2] := #RecipeEdit.C1ProfileRoast.arBlowerSpeed[#ls_iIteracao2 + 1];
+	                        #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[#ls_iIteracao2] := #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[#ls_iIteracao2 + 1];
+	                        #RecipeEdit.C1ProfileRoast.arInletTemperature[#ls_iIteracao2] := #RecipeEdit.C1ProfileRoast.arInletTemperature[#ls_iIteracao2 + 1];
+	                        EXIT;
+	                    END_IF;
+	                    #RecipeEdit.C1ProfileRoast.arBlowerSpeed[#ls_iIteracao2] := #RecipeEdit.C1ProfileRoast.arBlowerSpeed[#ls_iIteracao2 + 1];
+	                    #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[#ls_iIteracao2] := #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[#ls_iIteracao2 + 1];
+	                    #RecipeEdit.C1ProfileRoast.arInletTemperature[#ls_iIteracao2] := #RecipeEdit.C1ProfileRoast.arInletTemperature[#ls_iIteracao2 + 1];
+	                END_FOR;
+	            END_IF;
+	        END_FOR;
+	    END_REGION
+	    REGION Move valores da receita no secador caso apague campos da curva Lado 2
+	        FOR #ls_iIteracao1 := 1 TO 10 DO
+	            IF #RecipeEdit.C2ProfileDry.arBlowerSpeed[#ls_iIteracao1] = 0 AND #RecipeEdit.C2ProfileDry.arCoffeeTemperature[#ls_iIteracao1] = 0 AND #RecipeEdit.C2ProfileDry.arInletTemperature[#ls_iIteracao1] = 0 THEN
+	                FOR #ls_iIteracao2 := #ls_iIteracao1 TO 10 DO
+	                    IF #RecipeEdit.C2ProfileDry.arCoffeeTemperature[#ls_iIteracao2 + 1] = 0 THEN
+	                        #RecipeEdit.C2ProfileDry.arBlowerSpeed[#ls_iIteracao2] := #RecipeEdit.C2ProfileDry.arBlowerSpeed[#ls_iIteracao2 + 1];
+	                        #RecipeEdit.C2ProfileDry.arCoffeeTemperature[#ls_iIteracao2] := #RecipeEdit.C2ProfileDry.arCoffeeTemperature[#ls_iIteracao2 + 1];
+	                        #RecipeEdit.C2ProfileDry.arInletTemperature[#ls_iIteracao2] := #RecipeEdit.C2ProfileDry.arInletTemperature[#ls_iIteracao2 + 1];
+	                        EXIT;
+	                    END_IF;
+	                    #RecipeEdit.C2ProfileDry.arBlowerSpeed[#ls_iIteracao2] := #RecipeEdit.C2ProfileDry.arBlowerSpeed[#ls_iIteracao2 + 1];
+	                    #RecipeEdit.C2ProfileDry.arCoffeeTemperature[#ls_iIteracao2] := #RecipeEdit.C2ProfileDry.arCoffeeTemperature[#ls_iIteracao2 + 1];
+	                    #RecipeEdit.C2ProfileDry.arInletTemperature[#ls_iIteracao2] := #RecipeEdit.C2ProfileDry.arInletTemperature[#ls_iIteracao2 + 1];
+	                END_FOR;
+	            END_IF;
+	        END_FOR;
+	    END_REGION
+	    REGION Move valores da receita no torrador caso apague campos da curva Lado 2
+	        FOR #ls_iIteracao1 := 1 TO 10 DO
+	            IF #RecipeEdit.C2ProfileRoast.arBlowerSpeed[#ls_iIteracao1] = 0 AND #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[#ls_iIteracao1] = 0 AND #RecipeEdit.C2ProfileRoast.arInletTemperature[#ls_iIteracao1] = 0 THEN
+	                FOR #ls_iIteracao2 := #ls_iIteracao1 TO 10 DO
+	                    IF #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[#ls_iIteracao2 + 1] = 0 THEN
+	                        #RecipeEdit.C2ProfileRoast.arBlowerSpeed[#ls_iIteracao2] := #RecipeEdit.C2ProfileRoast.arBlowerSpeed[#ls_iIteracao2 + 1];
+	                        #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[#ls_iIteracao2] := #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[#ls_iIteracao2 + 1];
+	                        #RecipeEdit.C2ProfileRoast.arInletTemperature[#ls_iIteracao2] := #RecipeEdit.C2ProfileRoast.arInletTemperature[#ls_iIteracao2 + 1];
+	                        EXIT;
+	                    END_IF;
+	                    #RecipeEdit.C2ProfileRoast.arBlowerSpeed[#ls_iIteracao2] := #RecipeEdit.C2ProfileRoast.arBlowerSpeed[#ls_iIteracao2 + 1];
+	                    #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[#ls_iIteracao2] := #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[#ls_iIteracao2 + 1];
+	                    #RecipeEdit.C2ProfileRoast.arInletTemperature[#ls_iIteracao2] := #RecipeEdit.C2ProfileRoast.arInletTemperature[#ls_iIteracao2 + 1];
+	                END_FOR;
+	            END_IF;
+	        END_FOR;
+	    END_REGION
+	    REGION Ordena a receita do secador pelo valor da temperatura do cafe Lado1
+	        FOR #ls_iIteracao1 := 10 TO 1 BY -1 DO
+	            IF #RecipeEdit.C1ProfileDry.arCoffeeTemperature[#ls_iIteracao1 - 1] > #RecipeEdit.C1ProfileDry.arCoffeeTemperature[#ls_iIteracao1] AND #RecipeEdit.C1ProfileDry.arCoffeeTemperature[#ls_iIteracao1] <> 0 THEN
+	                #RecipeEdit.rBlowerSpeed := #RecipeEdit.C1ProfileDry.arBlowerSpeed[#ls_iIteracao1 - 1];
+	                #RecipeEdit.rCoffeeTemperature := #RecipeEdit.C1ProfileDry.arCoffeeTemperature[#ls_iIteracao1 - 1];
+	                #RecipeEdit.rInletTemperature := #RecipeEdit.C1ProfileDry.arInletTemperature[#ls_iIteracao1 - 1];
+	                #RecipeEdit.C1ProfileDry.arBlowerSpeed[#ls_iIteracao1 - 1] := #RecipeEdit.C1ProfileDry.arBlowerSpeed[#ls_iIteracao1];
+	                #RecipeEdit.C1ProfileDry.arCoffeeTemperature[#ls_iIteracao1 - 1] := #RecipeEdit.C1ProfileDry.arCoffeeTemperature[#ls_iIteracao1];
+	                #RecipeEdit.C1ProfileDry.arInletTemperature[#ls_iIteracao1 - 1] := #RecipeEdit.C1ProfileDry.arInletTemperature[#ls_iIteracao1];
+	                #RecipeEdit.C1ProfileDry.arBlowerSpeed[#ls_iIteracao1] := #RecipeEdit.rBlowerSpeed;
+	                #RecipeEdit.C1ProfileDry.arCoffeeTemperature[#ls_iIteracao1] := #RecipeEdit.rCoffeeTemperature;
+	                #RecipeEdit.C1ProfileDry.arInletTemperature[#ls_iIteracao1] := #RecipeEdit.rInletTemperature;
+	                "S0932_ControleGeralTrends_DB".ls_stcConfigTrendEditC1Dry.ls_iStep1 := 0;
+	                EXIT;
+	            END_IF;
+	        END_FOR;
+	    END_REGION
+	    REGION Ordena a receita do torrador pelo valor da temperatura do cafe lado 1
+	        FOR #ls_iIteracao1 := 10 TO 1 BY -1 DO
+	            IF #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[#ls_iIteracao1 - 1] > #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[#ls_iIteracao1] AND #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[#ls_iIteracao1] <> 0 THEN
+	                #RecipeEdit.rBlowerSpeed := #RecipeEdit.C1ProfileRoast.arBlowerSpeed[#ls_iIteracao1 - 1];
+	                #RecipeEdit.rCoffeeTemperature := #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[#ls_iIteracao1 - 1];
+	                #RecipeEdit.rInletTemperature := #RecipeEdit.C1ProfileRoast.arInletTemperature[#ls_iIteracao1 - 1];
+	                #RecipeEdit.C1ProfileRoast.arBlowerSpeed[#ls_iIteracao1 - 1] := #RecipeEdit.C1ProfileRoast.arBlowerSpeed[#ls_iIteracao1];
+	                #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[#ls_iIteracao1 - 1] := #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[#ls_iIteracao1];
+	                #RecipeEdit.C1ProfileRoast.arInletTemperature[#ls_iIteracao1 - 1] := #RecipeEdit.C1ProfileRoast.arInletTemperature[#ls_iIteracao1];
+	                #RecipeEdit.C1ProfileRoast.arBlowerSpeed[#ls_iIteracao1] := #RecipeEdit.rBlowerSpeed;
+	                #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[#ls_iIteracao1] := #RecipeEdit.rCoffeeTemperature;
+	                #RecipeEdit.C1ProfileRoast.arInletTemperature[#ls_iIteracao1] := #RecipeEdit.rInletTemperature;
+	                "S0932_ControleGeralTrends_DB".ls_stcConfigTrendEditC1Roast.ls_iStep1 := 0;
+	                EXIT;
+	            END_IF;
+	        END_FOR;
+	    END_REGION
+	    REGION Ordena a receita do secador pelo valor da temperatura do cafe Lado 2
+	        FOR #ls_iIteracao1 := 10 TO 1 BY -1 DO
+	            IF #RecipeEdit.C2ProfileDry.arCoffeeTemperature[#ls_iIteracao1 - 1] > #RecipeEdit.C2ProfileDry.arCoffeeTemperature[#ls_iIteracao1] AND #RecipeEdit.C2ProfileDry.arCoffeeTemperature[#ls_iIteracao1] <> 0 THEN
+	                #RecipeEdit.rBlowerSpeed := #RecipeEdit.C2ProfileDry.arBlowerSpeed[#ls_iIteracao1 - 1];
+	                #RecipeEdit.rCoffeeTemperature := #RecipeEdit.C2ProfileDry.arCoffeeTemperature[#ls_iIteracao1 - 1];
+	                #RecipeEdit.rInletTemperature := #RecipeEdit.C2ProfileDry.arInletTemperature[#ls_iIteracao1 - 1];
+	                #RecipeEdit.C2ProfileDry.arBlowerSpeed[#ls_iIteracao1 - 1] := #RecipeEdit.C2ProfileDry.arBlowerSpeed[#ls_iIteracao1];
+	                #RecipeEdit.C2ProfileDry.arCoffeeTemperature[#ls_iIteracao1 - 1] := #RecipeEdit.C2ProfileDry.arCoffeeTemperature[#ls_iIteracao1];
+	                #RecipeEdit.C2ProfileDry.arInletTemperature[#ls_iIteracao1 - 1] := #RecipeEdit.C2ProfileDry.arInletTemperature[#ls_iIteracao1];
+	                #RecipeEdit.C2ProfileDry.arBlowerSpeed[#ls_iIteracao1] := #RecipeEdit.rBlowerSpeed;
+	                #RecipeEdit.C2ProfileDry.arCoffeeTemperature[#ls_iIteracao1] := #RecipeEdit.rCoffeeTemperature;
+	                #RecipeEdit.C2ProfileDry.arInletTemperature[#ls_iIteracao1] := #RecipeEdit.rInletTemperature;
+	                "S0932_ControleGeralTrends_DB".ls_stcConfigTrendEditC1Dry.ls_iStep1 := 0;
+	                EXIT;
+	            END_IF;
+	        END_FOR;
+	    END_REGION
+	    REGION Ordena a receita do torrador pelo valor da temperatura do cafe lado 2
+	        FOR #ls_iIteracao1 := 10 TO 1 BY -1 DO
+	            IF #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[#ls_iIteracao1 - 1] > #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[#ls_iIteracao1] AND #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[#ls_iIteracao1] <> 0 THEN
+	                #RecipeEdit.rBlowerSpeed := #RecipeEdit.C2ProfileRoast.arBlowerSpeed[#ls_iIteracao1 - 1];
+	                #RecipeEdit.rCoffeeTemperature := #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[#ls_iIteracao1 - 1];
+	                #RecipeEdit.rInletTemperature := #RecipeEdit.C2ProfileRoast.arInletTemperature[#ls_iIteracao1 - 1];
+	                #RecipeEdit.C2ProfileRoast.arBlowerSpeed[#ls_iIteracao1 - 1] := #RecipeEdit.C2ProfileRoast.arBlowerSpeed[#ls_iIteracao1];
+	                #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[#ls_iIteracao1 - 1] := #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[#ls_iIteracao1];
+	                #RecipeEdit.C2ProfileRoast.arInletTemperature[#ls_iIteracao1 - 1] := #RecipeEdit.C2ProfileRoast.arInletTemperature[#ls_iIteracao1];
+	                #RecipeEdit.C2ProfileRoast.arBlowerSpeed[#ls_iIteracao1] := #RecipeEdit.rBlowerSpeed;
+	                #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[#ls_iIteracao1] := #RecipeEdit.rCoffeeTemperature;
+	                #RecipeEdit.C2ProfileRoast.arInletTemperature[#ls_iIteracao1] := #RecipeEdit.rInletTemperature;
+	                "S0932_ControleGeralTrends_DB".ls_stcConfigTrendEditC1Roast.ls_iStep1 := 0;
+	                EXIT;
+	            END_IF;
+	        END_FOR;
+	    END_REGION
+	END_REGION
+	REGION Atualiza o Trend em automatico na tela de edicao
+	    REGION Atualiza Trend da receita em edicao do secador Lado 1
+	        //Indica que houve alteração de parâmetros de receita entre scans e atualiza o trend
+	        FOR #ls_iIteracao1 := 1 TO 10 DO
+	            IF (#RecipeEdit.C1ProfileDry.arBlowerSpeed[#ls_iIteracao1] <> #RecipeLastTrend.RecipeLastEditC1Dry.arBlowerSpeed[#ls_iIteracao1] OR
+	                #RecipeEdit.C1ProfileDry.arInletTemperature[#ls_iIteracao1] <> #RecipeLastTrend.RecipeLastEditC1Dry.arInletTemperature[#ls_iIteracao1] OR
+	                #RecipeEdit.C1ProfileDry.arCoffeeTemperature[#ls_iIteracao1] <> #RecipeLastTrend.RecipeLastEditC1Dry.arCoffeeTemperature[#ls_iIteracao1]) AND
+	                (#RecipeEdit.C1ProfileDry.arBlowerSpeed[#ls_iIteracao1] <> 0 AND
+	                #RecipeEdit.C1ProfileDry.arCoffeeTemperature[#ls_iIteracao1] <> 0 AND
+	                #RecipeEdit.C1ProfileDry.arInletTemperature[#ls_iIteracao1] <> 0) THEN
+	                "S0932_ControleGeralTrends_DB".ls_stcConfigTrendEditC1Dry.ls_iStep1 := 0;
+	            END_IF;
+	        END_FOR;
+	        //Copia a receita atual para que seja comparada no próximo scan
+	        #RecipeLastTrend.RecipeLastEditC1Dry.arBlowerSpeed := #RecipeEdit.C1ProfileDry.arBlowerSpeed;
+	        #RecipeLastTrend.RecipeLastEditC1Dry.arInletTemperature := #RecipeEdit.C1ProfileDry.arInletTemperature;
+	        #RecipeLastTrend.RecipeLastEditC1Dry.arCoffeeTemperature := #RecipeEdit.C1ProfileDry.arCoffeeTemperature;
+	        //Indica que houve alteração do corte de receita entre scans e atualiza o trend
+	        IF #RecipeEdit.Recipe.rC1DryTemperature <> #RecipeEdit.rScan_C1DryTemperature THEN
+	            "S0932_ControleGeralTrends_DB".ls_stcConfigTrendEditC1Dry.ls_iStep1 := 0;
+	        END_IF;
+	        //Copia a receita atual para que seja comparada no próximo scan
+	        #RecipeEdit.rScan_C1DryTemperature := #RecipeEdit.Recipe.rC1DryTemperature;
+	    END_REGION
+	    REGION Atualiza Trend da receita em edicao do Torrador Lado 1
+	        //Indica que houve alteração de parâmetros de receita entre scans e atualiza o trend
+	        FOR #ls_iIteracao1 := 1 TO 10 DO
+	            IF (#RecipeEdit.C1ProfileRoast.arBlowerSpeed[#ls_iIteracao1] <> #RecipeLastTrend.RecipeLastEditC1Roast.arBlowerSpeed[#ls_iIteracao1] OR
+	                #RecipeEdit.C1ProfileRoast.arInletTemperature[#ls_iIteracao1] <> #RecipeLastTrend.RecipeLastEditC1Roast.arInletTemperature[#ls_iIteracao1] OR
+	                #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[#ls_iIteracao1] <> #RecipeLastTrend.RecipeLastEditC1Roast.arCoffeeTemperature[#ls_iIteracao1]) AND
+	                (#RecipeEdit.C1ProfileRoast.arBlowerSpeed[#ls_iIteracao1] <> 0 AND
+	                #RecipeEdit.C1ProfileRoast.arCoffeeTemperature[#ls_iIteracao1] <> 0 AND
+	                #RecipeEdit.C1ProfileRoast.arInletTemperature[#ls_iIteracao1] <> 0) THEN
+	                "S0932_ControleGeralTrends_DB".ls_stcConfigTrendEditC1Roast.ls_iStep1 := 0;
+	            END_IF;
+	        END_FOR;
+	        //Copia a receita atual para que seja comparada no próximo scan
+	        #RecipeLastTrend.RecipeLastEditC1Roast.arBlowerSpeed := #RecipeEdit.C1ProfileRoast.arBlowerSpeed;
+	        #RecipeLastTrend.RecipeLastEditC1Roast.arInletTemperature := #RecipeEdit.C1ProfileRoast.arInletTemperature;
+	        #RecipeLastTrend.RecipeLastEditC1Roast.arCoffeeTemperature := #RecipeEdit.C1ProfileRoast.arCoffeeTemperature;
+	        //Indica que houve alteração do corte de receita entre scans e atualiza o trend
+	        IF #RecipeEdit.Recipe.rC1RoastCutTemperature <> #RecipeEdit.rScan_C1RoastCutTemperature THEN
+	            #RecipeEdit.Recipe.rC1RoastQuenchTemperature := #RecipeEdit.Recipe.rC1RoastCutTemperature + #RecipeEdit.Recipe.rRoastBreaksTemperature;
+	            "S0932_ControleGeralTrends_DB".ls_stcConfigTrendEditC1Roast.ls_iStep1 := 0;
+	        END_IF;
+	        //Copia a receita atual para que seja comparada no próximo scan
+	        #RecipeEdit.rScan_C1RoastCutTemperature := #RecipeEdit.Recipe.rC1RoastCutTemperature;
+	        //Indica que houve alteração da aromatizacao de receita entre scans e atualiza o trend
+	        IF #RecipeEdit.Recipe.rC1RoastQuenchTemperature <> #RecipeEdit.rScan_C1QuenchTemperature OR #RecipeEdit.Recipe.rRoastBreaksTemperature <> #RecipeEdit.rScan_C1RoastBreaksTemperature THEN
+	            #RecipeEdit.Recipe.rC1RoastCutTemperature := #RecipeEdit.Recipe.rC1RoastQuenchTemperature - #RecipeEdit.Recipe.rRoastBreaksTemperature;
+	            "S0932_ControleGeralTrends_DB".ls_stcConfigTrendEditC1Roast.ls_iStep1 := 0;
+	        END_IF;
+	        //Copia a receita atual para que seja comparada no próximo scan
+	        #RecipeEdit.rScan_C1QuenchTemperature := #RecipeEdit.Recipe.rC1RoastQuenchTemperature;
+	        #RecipeEdit.rScan_C1RoastBreaksTemperature := #RecipeEdit.Recipe.rRoastBreaksTemperature;
+	    END_REGION
+	    REGION Atualiza Trend da receita em edicao do secador Lado 2
+	        //Indica que houve alteração de parâmetros de receita entre scans e atualiza o trend
+	        FOR #ls_iIteracao1 := 1 TO 10 DO
+	            IF (#RecipeEdit.C2ProfileDry.arBlowerSpeed[#ls_iIteracao1] <> #RecipeLastTrend.RecipeLastEditC2Dry.arBlowerSpeed[#ls_iIteracao1] OR
+	                #RecipeEdit.C2ProfileDry.arInletTemperature[#ls_iIteracao1] <> #RecipeLastTrend.RecipeLastEditC2Dry.arInletTemperature[#ls_iIteracao1] OR
+	                #RecipeEdit.C2ProfileDry.arCoffeeTemperature[#ls_iIteracao1] <> #RecipeLastTrend.RecipeLastEditC2Dry.arCoffeeTemperature[#ls_iIteracao1]) AND
+	                (#RecipeEdit.C2ProfileDry.arBlowerSpeed[#ls_iIteracao1] <> 0 AND
+	                #RecipeEdit.C2ProfileDry.arCoffeeTemperature[#ls_iIteracao1] <> 0 AND
+	                #RecipeEdit.C2ProfileDry.arInletTemperature[#ls_iIteracao1] <> 0) THEN
+	                "S0932_ControleGeralTrends_DB".ls_stcConfigTrendEditC2Dry.ls_iStep1 := 0;
+	            END_IF;
+	        END_FOR;
+	        //Copia a receita atual para que seja comparada no próximo scan
+	        #RecipeLastTrend.RecipeLastEditC2Dry.arBlowerSpeed := #RecipeEdit.C2ProfileDry.arBlowerSpeed;
+	        #RecipeLastTrend.RecipeLastEditC2Dry.arInletTemperature := #RecipeEdit.C2ProfileDry.arInletTemperature;
+	        #RecipeLastTrend.RecipeLastEditC2Dry.arCoffeeTemperature := #RecipeEdit.C2ProfileDry.arCoffeeTemperature;
+	        //Indica que houve alteração do corte de receita entre scans e atualiza o trend
+	        IF #RecipeEdit.Recipe.rC2DryTemperature <> #RecipeEdit.rScan_C2DryTemperature THEN
+	            "S0932_ControleGeralTrends_DB".ls_stcConfigTrendEditC2Dry.ls_iStep1 := 0;
+	        END_IF;
+	        //Copia a receita atual para que seja comparada no próximo scan
+	        #RecipeEdit.rScan_C2DryTemperature := #RecipeEdit.Recipe.rC2DryTemperature;
+	    END_REGION
+	    REGION Atualiza Trend da receita em edicao do Torrador Lado 2
+	        //Indica que houve alteração de parâmetros de receita entre scans e atualiza o trend
+	        FOR #ls_iIteracao1 := 1 TO 10 DO
+	            IF (#RecipeEdit.C2ProfileRoast.arBlowerSpeed[#ls_iIteracao1] <> #RecipeLastTrend.RecipeLastEditC2Roast.arBlowerSpeed[#ls_iIteracao1] OR
+	                #RecipeEdit.C2ProfileRoast.arInletTemperature[#ls_iIteracao1] <> #RecipeLastTrend.RecipeLastEditC2Roast.arInletTemperature[#ls_iIteracao1] OR
+	                #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[#ls_iIteracao1] <> #RecipeLastTrend.RecipeLastEditC2Roast.arCoffeeTemperature[#ls_iIteracao1]) AND
+	                (#RecipeEdit.C2ProfileRoast.arBlowerSpeed[#ls_iIteracao1] <> 0 AND
+	                #RecipeEdit.C2ProfileRoast.arCoffeeTemperature[#ls_iIteracao1] <> 0 AND
+	                #RecipeEdit.C2ProfileRoast.arInletTemperature[#ls_iIteracao1] <> 0) THEN
+	                "S0932_ControleGeralTrends_DB".ls_stcConfigTrendEditC2Roast.ls_iStep1 := 0;
+	            END_IF;
+	        END_FOR;
+	        //Copia a receita atual para que seja comparada no próximo scan
+	        #RecipeLastTrend.RecipeLastEditC2Roast.arBlowerSpeed := #RecipeEdit.C2ProfileRoast.arBlowerSpeed;
+	        #RecipeLastTrend.RecipeLastEditC2Roast.arInletTemperature := #RecipeEdit.C2ProfileRoast.arInletTemperature;
+	        #RecipeLastTrend.RecipeLastEditC2Roast.arCoffeeTemperature := #RecipeEdit.C2ProfileRoast.arCoffeeTemperature;
+	        //Indica que houve alteração do corte de receita entre scans e atualiza o trend
+	        IF #RecipeEdit.Recipe.rC2RoastCutTemperature <> #RecipeEdit.rScan_C2RoastCutTemperature THEN
+	            #RecipeEdit.Recipe.rC2RoastQuenchTemperature := #RecipeEdit.Recipe.rC2RoastCutTemperature + #RecipeEdit.Recipe.rRoastBreaksTemperature;
+	            "S0932_ControleGeralTrends_DB".ls_stcConfigTrendEditC2Roast.ls_iStep1 := 0;
+	        END_IF;
+	        //Copia a receita atual para que seja comparada no próximo scan
+	        #RecipeEdit.rScan_C2RoastCutTemperature := #RecipeEdit.Recipe.rC2RoastCutTemperature;
+	        //Indica que houve alteração da aromatizacao de receita entre scans e atualiza o trend
+	        IF #RecipeEdit.Recipe.rC2RoastQuenchTemperature <> #RecipeEdit.rScan_C2QuenchTemperature OR #RecipeEdit.Recipe.rRoastBreaksTemperature <> #RecipeEdit.rScan_C2RoastBreaksTemperature THEN
+	            #RecipeEdit.Recipe.rC2RoastCutTemperature := #RecipeEdit.Recipe.rC2RoastQuenchTemperature - #RecipeEdit.Recipe.rRoastBreaksTemperature;
+	            "S0932_ControleGeralTrends_DB".ls_stcConfigTrendEditC2Roast.ls_iStep1 := 0;
+	        END_IF;
+	        //Copia a receita atual para que seja comparada no próximo scan
+	        #RecipeEdit.rScan_C2QuenchTemperature := #RecipeEdit.Recipe.rC2RoastQuenchTemperature;
+	        #RecipeEdit.rScan_C2RoastBreaksTemperature := #RecipeEdit.Recipe.rRoastBreaksTemperature;
+	    END_REGION
+	END_REGION
+END_FUNCTION_BLOCK
+

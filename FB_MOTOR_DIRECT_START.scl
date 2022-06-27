@@ -1,0 +1,685 @@
+﻿FUNCTION_BLOCK "FB_MOTOR_DIRECT_START"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      EMERGENCIA { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;
+      MODO_HAB_SUP { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;
+      HAB_DR_OP { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;
+      MODO_OP_SUP { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;
+      MODO_CMD_SUP { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;
+      MODO_CONT_SUP { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;
+      MODO_SIM_SUP { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      SIM_ON { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      MODO_MON_SUP { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;
+      MON_ON { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;
+      PERMISSAO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;
+      RESET { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      AUTO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      MANUAL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      INTER_AUTO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;
+      LIG_AUTO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      DES_AUTO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      INTER_MAN { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;
+      LIG_MAN { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      DES_MAN { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      REMOTO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      LOCAL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      INTER_LOCAL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;
+      LIG_LOCAL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      DES_LOCAL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      RET_LIGADO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      TP_FALHA { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 10.0;
+      FALHA_EXT { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      MPS { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      TEXTO_ALARME { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : String[80];
+      AREA_ALARME { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : String[20];
+      RESTART { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+      INSTANCE { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : String[20];
+   END_VAR
+
+   VAR_OUTPUT 
+      Q_LIGAR { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      Q_LIGADO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      Q_DESLIGADO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      Q_AUTO_MAN { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      Q_LOC_REM { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      Q_HABILITADO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      Q_SIM { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      Q_MON { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      Q_FALHA_MON { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      Q_FALHA_EXT { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      Q_FALHA_MPS { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      Q_FALHA { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      STW_DR { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;
+   END_VAR
+
+   VAR RETAIN
+      HmiData : "pdt_Motor_PD";
+   END_VAR
+   VAR 
+      COND_RESET { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      RESET_OP { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      OP_RESET { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      M_LIGAR { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      M_LIGADO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      M_DESLIGADO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+   END_VAR
+   VAR RETAIN
+      M_AUTO_MAN { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+   END_VAR
+   VAR 
+      M_LOC_REM { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;
+   END_VAR
+   VAR RETAIN
+      M_HABILITADO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;
+   END_VAR
+   VAR 
+      M_INTER_ATIVO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+      M_FALHA_MON { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      M_FALHA_EXT { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      M_FALHA_MPS { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      M_FALHA { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      M_SIM_ON { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+   END_VAR
+   VAR RETAIN
+      M_MON { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;
+   END_VAR
+   VAR 
+      M_FALHA_SOBRECARGA { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      M_RET_SIM { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      M_FALHA_PARTIDA { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      M_FALHA_PARADA { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;
+      TP_OP_SEG { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
+      TP_OP_MIN { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
+      TP_OP_HORA { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
+      MON_LIGADO_SIM { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+      MON_DESLIGADO_SIM { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;
+      TON_PARTIDA {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+      TON_PARADA {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+      TON_SOBRECARGA {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+      TON_PARTIDA_SIM {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+      TON_PARADA_SIM {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+      TP_RESET {InstructionName := 'TP_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TP_TIME;
+      TON_CLOCK_ON {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+      TON_CLOCK_OFF {InstructionName := 'TON_TIME'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : TON_TIME;
+      FLANCO_TP_OP {InstructionName := 'R_TRIG'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : R_TRIG;
+      Evento_Man_Auto {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;
+      Evento_Liga {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;
+      Evento_Desliga {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;
+      Evento_Monitoracao {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;
+      Evento_Simulacao {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;
+      Evento_Manutencao {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;
+      Evento_Tp_Monitoracao {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;
+      Evento_Tp_Simulacao {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;
+      Evento_Emergencia {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;
+      Falha_Partida {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;
+      Falha_Parada {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;
+      Falha_Sobrecarga {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;
+      Falha_Externa {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;
+      Falha_MPS {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;
+   END_VAR
+   VAR RETAIN
+      Op_Tp_Falha_Ult_Valor { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
+      Op_Tp_Sim_Ult_Valor { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
+   END_VAR
+
+
+BEGIN
+	(********************************
+	           Restart Cpu
+	*********************************)
+	IF #RESTART THEN
+	    #M_LIGAR := FALSE;
+	    #M_LIGADO := FALSE;
+	    #M_DESLIGADO := TRUE;
+	    #Q_LIGAR := FALSE;
+	    #Q_LIGADO := FALSE;
+	    #Q_DESLIGADO := TRUE;
+	    #HmiData.Op_Dw_Cmd := 0;
+	ELSE
+	    
+	    // Cpu em Operação
+	    
+	(******************************************
+	 Network 1: Modo de Operação Manual/Automático
+	 Variável: OPdwCmd  Bit:  16  =  Manual
+	 Variável: OPdwCmd  Bit:  17  =  Automático
+	*******************************************)
+	    IF (#AUTO) OR
+	        (#HmiData.Op_Dw_Cmd.%X17 = TRUE AND #MODO_OP_SUP = TRUE) THEN
+	        #M_AUTO_MAN := TRUE;
+	    ELSIF (#MANUAL) OR
+	        (#HmiData.Op_Dw_Cmd.%X16 = TRUE AND #MODO_OP_SUP = TRUE) THEN
+	        #M_AUTO_MAN := FALSE;
+	    END_IF;
+	    
+	(******************************************
+	 Network 2: Modo de Controle : Local/Remoto
+	 Variável: OPdwCmd  Bit:  18  =  Local
+	 Variável: OPdwCmd  Bit:  19  =  Remoto
+	*******************************************)
+	    IF (#REMOTO) OR (#HmiData.Op_Dw_Cmd.%X19 = TRUE AND #MODO_CONT_SUP = TRUE) THEN
+	        #M_LOC_REM := TRUE;
+	    ELSIF (#LOCAL) OR (#HmiData.Op_Dw_Cmd.%X18 = TRUE AND #MODO_CONT_SUP = TRUE) THEN
+	        #M_LOC_REM := FALSE;
+	    END_IF;
+	    
+	(******************************************
+	 Network 3: Simulação On/Off
+	 Variável: OPdwCmd  Bit:  20  =  Processo
+	 Variável: OPdwCmd  Bit:  21  =  Simulação
+	*******************************************)
+	    IF (#SIM_ON = TRUE AND #MODO_SIM_SUP = FALSE) OR (#HmiData.Op_Dw_Cmd.%X21 = TRUE AND #MODO_SIM_SUP = TRUE) THEN
+	        #M_SIM_ON := TRUE;
+	    ELSIF (#SIM_ON = FALSE AND #MODO_SIM_SUP = FALSE) OR (#HmiData.Op_Dw_Cmd.%X20 = TRUE AND #MODO_SIM_SUP = TRUE) THEN
+	        #M_SIM_ON := FALSE;
+	    END_IF;
+	
+	(**********************************************
+	 Network 4: Monitoração Retorno de Ligado ON/OFF
+	 Variável: OPdwCmd  Bit:  8  =  Monitoração ON
+	 Variável: OPdwCmd  Bit:  9  =  Monitoração OFF
+	***********************************************)
+	    IF (#MODO_MON_SUP = FALSE AND #MON_ON = FALSE) OR (#HmiData.Op_Dw_Cmd.%X9 = TRUE AND #MODO_MON_SUP = TRUE) THEN
+	        #M_MON := FALSE;
+	    ELSIF (#MODO_MON_SUP = FALSE AND #MON_ON = TRUE) OR (#HmiData.Op_Dw_Cmd.%X8 = TRUE AND #MODO_MON_SUP = TRUE) THEN
+	        #M_MON := TRUE;
+	    END_IF;
+	
+	(**********************************************
+	 Network 5: Habilita/Desabilita Manutenção
+	 Variável: OPdwCmd  Bit:  10  =  Habilita
+	 Variável: OPdwCmd  Bit:  11  =  Desabilita
+	***********************************************)
+	    IF (#HAB_DR_OP = FALSE AND #MODO_HAB_SUP = FALSE) OR (#HmiData.Op_Dw_Cmd.%X11 = TRUE AND #MODO_HAB_SUP = TRUE) THEN
+	        #M_HABILITADO := FALSE;
+	    ELSIF (#HAB_DR_OP = TRUE AND #MODO_HAB_SUP = FALSE) OR (#HmiData.Op_Dw_Cmd.%X10 = TRUE AND #MODO_HAB_SUP = TRUE) THEN
+	        #M_HABILITADO := TRUE;
+	    END_IF;
+	    
+	(*************************************
+	 Network 6: Reset Falhas
+	 Variável: OPdwCmd  Bit:  24  =  Reset
+	**************************************)
+	// Condição Reset Falhas
+	IF (#RESET = TRUE OR #HmiData.Op_Dw_Cmd.%X24 = TRUE) AND #COND_RESET = FALSE THEN
+	    #RESET_OP := TRUE;
+	    #COND_RESET := TRUE;
+	ELSIF #RESET_OP = TRUE AND #COND_RESET = TRUE THEN
+	    #RESET_OP := FALSE;
+	ELSE
+	    #COND_RESET := FALSE;
+	END_IF;
+	
+	// Pulso Reset Falha
+	#TP_RESET(IN := (#RESET_OP),
+	          PT := t#5s,
+	          Q => #OP_RESET);
+	
+	IF #OP_RESET THEN
+	   #Q_FALHA_MON := FALSE;
+	    #Q_FALHA_EXT := FALSE;
+	    #Q_FALHA_MPS := FALSE;
+	    #Q_FALHA := FALSE;
+	    #M_FALHA_MON := FALSE;
+	    #M_FALHA_EXT := FALSE;
+	    #M_FALHA_MPS := FALSE;
+	    #M_FALHA := FALSE;
+	    #M_FALHA_SOBRECARGA := FALSE;
+	    #M_FALHA_PARTIDA := FALSE;
+	    #M_FALHA_PARADA := FALSE;
+	END_IF;
+	
+	(**********************************************
+	 Network 7: LIGA/DESLIGA Motor
+	 Variável: OPdwCmd  Bit:  0  =  DESLIGA Motor
+	 Variável: OPdwCmd  Bit:  1  =  LIGA Motor
+	***********************************************)
+	IF #EMERGENCIA = TRUE AND #M_FALHA = FALSE THEN
+	    IF (#M_HABILITADO) THEN
+	        IF #M_LOC_REM = TRUE THEN
+	            IF #M_AUTO_MAN = TRUE THEN
+	                IF #INTER_AUTO = TRUE THEN
+	                    IF #DES_AUTO = TRUE THEN
+	                        #M_LIGAR := FALSE;
+	                    ELSIF #LIG_AUTO AND #PERMISSAO = TRUE THEN
+	                        #M_LIGAR := TRUE;
+	                    END_IF;
+	                ELSE
+	                    #M_LIGAR := FALSE;
+	                END_IF;
+	            ELSE
+	                IF #INTER_MAN = TRUE THEN
+	                    IF (#DES_MAN OR (#HmiData.Op_Dw_Cmd.%X0 AND #MODO_CMD_SUP)) THEN
+	                        #M_LIGAR := FALSE;
+	                    ELSIF (#LIG_MAN OR (#HmiData.Op_Dw_Cmd.%X1 AND #MODO_CMD_SUP)) AND #PERMISSAO = TRUE THEN
+	                        #M_LIGAR := TRUE;
+	                    END_IF;
+	                ELSE
+	                    #M_LIGAR := FALSE;
+	                END_IF;
+	            END_IF;
+	        ELSE
+	            IF #INTER_LOCAL = TRUE THEN
+	                IF #DES_LOCAL THEN
+	                    #M_LIGAR := FALSE;
+	                ELSIF #LIG_LOCAL AND #PERMISSAO = TRUE THEN
+	                    #M_LIGAR := TRUE;
+	                END_IF;
+	            ELSE
+	                #M_LIGAR := FALSE;
+	            END_IF;
+	        END_IF;
+	    ELSE
+	        #M_LIGAR := FALSE;
+	    END_IF;
+	ELSE
+	    #M_LIGAR := FALSE;
+	END_IF;
+	(*******************************************************************
+	 Network 8: Indicação Intertravamento Ativo
+	********************************************************************)
+	IF #M_LOC_REM = TRUE AND #M_AUTO_MAN = TRUE AND #INTER_AUTO OR
+	    #M_LOC_REM = TRUE AND #M_AUTO_MAN = FALSE AND #INTER_MAN OR
+	    #M_LOC_REM = FALSE AND #INTER_LOCAL THEN
+	    #M_INTER_ATIVO := FALSE;
+	ELSE
+	    #M_INTER_ATIVO := TRUE;
+	END_IF;
+	
+	(*******************************************************************
+	 Network 9: Indicações Ligado/Desligado
+	********************************************************************)
+	IF (#M_MON = TRUE AND #M_SIM_ON = FALSE AND #M_LIGAR = TRUE AND #RET_LIGADO = TRUE) OR
+	        (#M_MON = TRUE AND #M_SIM_ON = TRUE AND #M_RET_SIM = TRUE) OR
+	        (#M_MON = FALSE AND #M_LIGAR = TRUE) THEN
+	        #M_LIGADO := TRUE;
+	    ELSIF (#M_MON = TRUE AND (#M_LIGAR = FALSE AND #RET_LIGADO = FALSE)) OR
+	        (#M_MON = TRUE AND #M_SIM_ON = TRUE AND #M_RET_SIM = FALSE) OR
+	        (#M_MON = FALSE AND #M_LIGAR = FALSE) THEN
+	        #M_LIGADO := FALSE;
+	    END_IF;
+	    
+	    #M_DESLIGADO := NOT #M_LIGADO;
+	    
+	(*******************************************************************
+	 Network 10: Tempos para Gerar falha Partida/Parada
+	********************************************************************)
+	    IF #M_SIM_ON = FALSE AND #M_MON = TRUE THEN
+	        //Monitoração em Modo de Operação
+	        #TON_PARTIDA(IN := (#M_LIGAR = TRUE AND #RET_LIGADO = FALSE),
+	                     PT := (REAL_TO_DINT(#TP_FALHA) * 1000));
+	        
+	        #TON_PARADA(IN := (#M_LIGAR = FALSE AND #RET_LIGADO = TRUE),
+	                    PT := (REAL_TO_DINT(#TP_FALHA) * 1000));
+	        
+	        #TON_SOBRECARGA(IN := (#M_LIGADO AND NOT #RET_LIGADO),
+	                        PT :=t#2s);
+	        
+	        // Falha de Sobrecarga
+	        IF #TON_SOBRECARGA.Q THEN
+	            #M_FALHA_SOBRECARGA := TRUE;
+	        END_IF;
+	        
+	        //Falha na Partida
+	        IF #TON_PARTIDA.Q THEN
+	            #M_FALHA_PARTIDA := TRUE;
+	        END_IF;
+	        //Falha na Parada
+	        IF #TON_PARADA.Q THEN
+	            #M_FALHA_PARADA := TRUE;
+	        END_IF;
+	        //Falha Monitoração de Feedback
+	        #M_FALHA_MON := #M_FALHA_SOBRECARGA = TRUE OR #M_FALHA_PARTIDA = TRUE OR #M_FALHA_PARADA = TRUE;
+	        
+	    ELSIF #M_SIM_ON = TRUE AND #M_MON = TRUE THEN
+	        // Monitoração em Modo de Simulação
+	        #TON_PARTIDA_SIM(IN := #M_LIGAR = TRUE,
+	                         PT := (REAL_TO_DINT(#HmiData.Op_Tp_Indicacao_Sim) * 1000),
+	                         Q => #MON_LIGADO_SIM);
+	        
+	        #TON_PARADA_SIM(IN := (NOT #M_LIGAR),
+	                        PT := (REAL_TO_DINT(#HmiData.Op_Tp_Indicacao_Sim) * 1000),
+	                        Q => #MON_DESLIGADO_SIM);
+	        
+	        // Monitoração Ligado/Desliga em Modo de Simulação
+	        IF #MON_DESLIGADO_SIM = TRUE OR #M_FALHA = TRUE THEN
+	            #M_RET_SIM := FALSE;
+	        ELSIF #MON_LIGADO_SIM = TRUE THEN
+	            #M_RET_SIM := TRUE;
+	        END_IF;
+	    END_IF;
+	    
+	(**********************************************
+	 Network 11: Falha no Acionamento
+	***********************************************)
+	// Falha Externa
+	IF #FALHA_EXT = TRUE THEN
+	    #M_FALHA_EXT := TRUE;
+	END_IF;
+	
+	// Falha Chave de Proteção do Motor
+	IF #MPS = TRUE THEN
+	    #M_FALHA_MPS := TRUE;
+	END_IF;
+	
+	// Falha Geral
+	IF #M_FALHA_EXT OR #M_FALHA_MPS OR #M_FALHA_MON THEN
+	    #M_FALHA := TRUE;
+	END_IF;
+	
+	(****************************************************
+	 Network 12: Tempo de Operação
+	******************************************************)
+	#TON_CLOCK_ON(IN := NOT #TON_CLOCK_OFF.Q,
+	              PT := t#500ms);
+	
+	#TON_CLOCK_OFF(IN := #TON_CLOCK_ON.Q,
+	               PT := t#500ms);
+	
+	#FLANCO_TP_OP(CLK := #TON_CLOCK_ON.Q);
+	
+	IF #M_LIGADO AND #FLANCO_TP_OP.Q THEN
+	    #TP_OP_SEG := #TP_OP_SEG + 1.0;
+	END_IF;
+	
+	IF #TP_OP_SEG >= 60.0 THEN
+	    #TP_OP_SEG := 0.0;
+	    #TP_OP_MIN := #TP_OP_MIN + 1.0;
+	END_IF;
+	
+	IF #TP_OP_MIN >= 60.0 THEN
+	    #TP_OP_MIN := 0.0;
+	    #TP_OP_HORA := #TP_OP_HORA + 1.0;
+	END_IF;
+	
+	IF #HmiData.Op_Dw_Cmd.%X25 THEN
+	    #TP_OP_SEG := 0.0;
+	    #TP_OP_MIN := 0.0;
+	    #TP_OP_HORA := 0.0;
+	END_IF;
+	
+	
+	(**********************************************
+	 Network 13: Variaveis para IHM
+	***********************************************)
+	#HmiData.Instance := #INSTANCE;
+	#HmiData.Q_Tp_Horas := #TP_OP_HORA;
+	
+	(*******************************************************************
+	 Network 14: Escreve Variáveis Internas para Saída
+	********************************************************************)
+	#Q_LIGAR := #M_LIGAR;
+	#Q_LIGADO := #M_LIGADO;
+	#Q_DESLIGADO := #M_DESLIGADO;
+	#Q_AUTO_MAN := #M_AUTO_MAN;
+	#Q_LOC_REM := #M_LOC_REM;
+	#Q_HABILITADO := #M_HABILITADO;
+	#Q_SIM := #M_SIM_ON;
+	#Q_MON := #M_MON;
+	#Q_FALHA_MON := #M_FALHA_MON;
+	#Q_FALHA_EXT := #M_FALHA_EXT;
+	#Q_FALHA_MPS := #M_FALHA_MPS;
+	#Q_FALHA := #M_FALHA;
+	
+	(**********************************************
+	 Network 15: Status Bit IHM
+	**********************************************)
+	#HmiData.QdwStatus.%X0 := #MODO_OP_SUP;
+	#HmiData.QdwStatus.%X1 := #MODO_CONT_SUP;
+	#HmiData.QdwStatus.%X2 := #MODO_SIM_SUP;
+	#HmiData.QdwStatus.%X3 := #MODO_MON_SUP;
+	#HmiData.QdwStatus.%X4 := #MODO_HAB_SUP;
+	#HmiData.QdwStatus.%X5 := #MODO_CMD_SUP;
+	#HmiData.QdwStatus.%X6 := FALSE;
+	#HmiData.QdwStatus.%X7 := FALSE;
+	#HmiData.QdwStatus.%X8 := #M_LIGADO;
+	#HmiData.QdwStatus.%X9 := #M_DESLIGADO;
+	#HmiData.QdwStatus.%X10 := #M_AUTO_MAN;
+	#HmiData.QdwStatus.%X11 := #M_LOC_REM;
+	#HmiData.QdwStatus.%X12 := #M_FALHA_MON;
+	#HmiData.QdwStatus.%X13 := #M_FALHA_EXT;
+	#HmiData.QdwStatus.%X14 := #M_FALHA_MPS;
+	#HmiData.QdwStatus.%X15 := #M_FALHA;
+	#HmiData.QdwStatus.%X16 := #M_SIM_ON;
+	#HmiData.QdwStatus.%X17 := #M_MON;
+	#HmiData.QdwStatus.%X18 := NOT #M_INTER_ATIVO;
+	#HmiData.QdwStatus.%X19 := #PERMISSAO;
+	#HmiData.QdwStatus.%X20 := #M_HABILITADO;
+	#HmiData.QdwStatus.%X21 := FALSE;
+	#HmiData.QdwStatus.%X22 := FALSE;
+	#HmiData.QdwStatus.%X23 := FALSE;
+	#HmiData.QdwStatus.%X24 := FALSE;
+	#HmiData.QdwStatus.%X25 := FALSE;
+	#HmiData.QdwStatus.%X26 := FALSE;
+	#HmiData.QdwStatus.%X27 := FALSE;
+	#HmiData.QdwStatus.%X28 := FALSE;
+	#HmiData.QdwStatus.%X29 := FALSE;
+	#HmiData.QdwStatus.%X30 := #M_LIGAR;
+	#HmiData.QdwStatus.%X31 := NOT #M_LIGAR;
+	
+	(**********************************************
+	 Network 16: Status Drive
+	***********************************************)
+	// DRIVE DESABILITADO PARA MANUTENÇÃO 
+	IF (#M_HABILITADO = FALSE) THEN
+	    #HmiData.Stw_Dr := 0;
+	    
+	    //#FALHA NA PARTIDA DO DRIVE
+	ELSIF #M_FALHA_PARTIDA = TRUE THEN
+	    #HmiData.Stw_Dr := 30;
+	    
+	    //#FALHA NA PARARA
+	ELSIF #M_FALHA_PARADA = TRUE THEN
+	    #HmiData.Stw_Dr := 31;
+	    
+	    // #FALHA SOBRECARGA NO DRIVE
+	ELSIF #M_FALHA_SOBRECARGA = TRUE THEN
+	    #HmiData.Stw_Dr := 32;
+	    
+	    // #FALHA EXTERNA
+	ELSIF #M_FALHA_EXT = TRUE THEN
+	    #HmiData.Stw_Dr := 33;
+	    
+	    // #FALHA PROTEÇÃO TÉRMICA
+	ELSIF #M_FALHA_MPS = TRUE THEN
+	    #HmiData.Stw_Dr := 34;
+	    
+	    // #EMERGENCIA ACIONADA
+	ELSIF #EMERGENCIA = FALSE THEN
+	    #HmiData.Stw_Dr := 35;
+	    
+	    // LIGANDO EM #MANUAL
+	ELSIF #M_AUTO_MAN = FALSE AND #M_LOC_REM = TRUE AND #M_LIGAR = TRUE AND #M_FALHA = FALSE AND #M_LIGADO = FALSE THEN
+	    #HmiData.Stw_Dr := 5;
+	    
+	    // LIGADO EM MANUAL
+	ELSIF #M_AUTO_MAN = FALSE AND #M_LOC_REM = TRUE AND #M_LIGAR = TRUE AND #M_FALHA = FALSE AND #M_LIGADO = TRUE THEN
+	    #HmiData.Stw_Dr := 6;
+	    
+	    // DESLIGANDO EM MANUAL
+	ELSIF #M_AUTO_MAN = FALSE AND #M_LOC_REM = TRUE AND #M_LIGAR = FALSE AND #M_FALHA = FALSE AND #M_DESLIGADO = FALSE THEN
+	    #HmiData.Stw_Dr := 7;
+	    
+	    // INTERTRAVADO EM MANUAL
+	ELSIF (#LIG_MAN OR #HmiData.Op_Dw_Cmd.%X1) AND #M_AUTO_MAN = FALSE AND #M_LOC_REM = TRUE AND #INTER_MAN = FALSE AND #M_FALHA = FALSE THEN
+	    #HmiData.Stw_Dr := 13;
+	    
+	    // DESLIGADO EM MANUAL
+	ELSIF #M_AUTO_MAN = FALSE AND #M_LOC_REM = TRUE AND #M_LIGAR = FALSE AND #M_FALHA = FALSE AND #M_DESLIGADO = TRUE THEN
+	    #HmiData.Stw_Dr := 8;
+	    
+	    // LIGANDO EM AUTOMATICO
+	ELSIF #M_AUTO_MAN = TRUE AND #M_LOC_REM = TRUE AND #M_LIGAR = TRUE AND #M_FALHA = FALSE AND #M_LIGADO = FALSE THEN
+	    #HmiData.Stw_Dr := 9;
+	    
+	    // LIGADO EM AUTOMATICO
+	ELSIF #M_AUTO_MAN = TRUE AND #M_LOC_REM = TRUE AND #M_LIGAR = TRUE AND #M_FALHA = FALSE AND #M_LIGADO = TRUE THEN
+	    #HmiData.Stw_Dr := 10;
+	    
+	    // DESLIGANDO EM AUTOMATICO
+	ELSIF #M_AUTO_MAN = TRUE AND #M_LOC_REM = TRUE AND #M_LIGAR = FALSE AND #M_FALHA = FALSE AND #M_DESLIGADO = FALSE THEN
+	    #HmiData.Stw_Dr := 11;
+	    
+	    // INTERTRAVADO EM AUTOMATICO
+	ELSIF #M_AUTO_MAN = TRUE AND #M_LOC_REM = TRUE AND #INTER_AUTO = FALSE AND #M_FALHA = FALSE AND #LIG_AUTO = TRUE THEN
+	    #HmiData.Stw_Dr := 14;
+	    
+	    // DESLIGADO AUTOMATICO
+	ELSIF #M_AUTO_MAN = TRUE AND #M_LOC_REM = TRUE AND #M_LIGAR = FALSE AND #M_FALHA = FALSE AND #M_DESLIGADO = TRUE THEN
+	    #HmiData.Stw_Dr := 12;
+	    
+	    // LIGANDO EM MODO LOCAL
+	ELSIF #M_LOC_REM = FALSE AND #M_LIGAR = TRUE AND #M_FALHA = FALSE AND #M_LIGADO = FALSE THEN
+	    #HmiData.Stw_Dr := 15;
+	    
+	    // LIGADO EM MODO LOCAL
+	ELSIF #M_LOC_REM = FALSE AND #M_LIGAR = TRUE AND #M_FALHA = FALSE AND #M_LIGADO = TRUE THEN
+	    #HmiData.Stw_Dr := 16;
+	    
+	    // DESLIGANDO EM MODO LOCAL
+	ELSIF #M_LOC_REM = FALSE AND #M_LIGAR = FALSE AND #M_FALHA = FALSE AND #M_DESLIGADO = FALSE THEN
+	    #HmiData.Stw_Dr := 17;
+	    
+	    // INTERTRAVADO EM MODO LOCAL
+	ELSIF #M_LOC_REM = FALSE AND #INTER_LOCAL = FALSE AND #M_FALHA = FALSE AND #LIG_LOCAL = TRUE THEN
+	    #HmiData.Stw_Dr := 19;
+	    
+	    // DESLIGADO EM MODO LOCAL
+	ELSIF #M_LOC_REM = FALSE AND #M_LIGAR = FALSE AND #M_FALHA = FALSE AND #M_DESLIGADO = TRUE THEN
+	    #HmiData.Stw_Dr := 18;
+	END_IF;
+	
+	#STW_DR := #HmiData.Stw_Dr;
+	
+	(*********************************************************
+	 Network 22: Eventos para Supervisório
+	**********************************************************) 
+	
+	//EVENTO COMANDO MANUAL
+	#Evento_Man_Auto(SIG := NOT #M_AUTO_MAN,
+	                 SD_1 := #TEXTO_ALARME,
+	                 SD_2 := #AREA_ALARME,
+	                 SD_5 := "DB_USER_NAME".USER_NAME,
+	                 SD_6 := "DB_USER_NAME".LOCAL_MACHINE);
+	
+	//EVENTO COMANDO LIGAR MANUAL OPERADOR
+	#Evento_Liga(SIG := NOT #M_AUTO_MAN AND #INTER_MAN AND #PERMISSAO AND NOT #M_FALHA AND #EMERGENCIA AND #M_HABILITADO AND #M_LOC_REM AND (#HmiData.Op_Dw_Cmd.%X1),
+	             SD_1 := #TEXTO_ALARME,
+	             SD_2 := #AREA_ALARME,
+	             SD_5 := "DB_USER_NAME".USER_NAME,
+	             SD_6 := "DB_USER_NAME".LOCAL_MACHINE);
+	
+	//EVENTO COMANDO DESLIGAR MANUAL OPERADOR
+	#Evento_Desliga(SIG := (#HmiData.Op_Dw_Cmd.%X0),
+	                SD_1 := #TEXTO_ALARME,
+	                SD_2 := #AREA_ALARME,
+	                SD_5 := "DB_USER_NAME".USER_NAME,
+	                SD_6 := "DB_USER_NAME".LOCAL_MACHINE);
+	
+	
+	//EVENTO MONITORAÇÃO DESABILITADA PELO OPERADOR
+	#Evento_Monitoracao(SIG := NOT #M_MON,
+	                    SD_1 := #TEXTO_ALARME,
+	                    SD_2 := #AREA_ALARME,
+	                    SD_5 := "DB_USER_NAME".USER_NAME,
+	                    SD_6 := "DB_USER_NAME".LOCAL_MACHINE);
+	
+	//EVENTO SIMULAÇÃO HABILITADA PELO OPERADOR
+	#Evento_Simulacao(SIG := #M_SIM_ON,
+	                  SD_1 := #TEXTO_ALARME,
+	                  SD_2 := #AREA_ALARME,
+	                  SD_5 := "DB_USER_NAME".USER_NAME,
+	                  SD_6 := "DB_USER_NAME".LOCAL_MACHINE);
+	
+	//EVENTO DESABILITADO MANUTENÇÃO
+	#Evento_Manutencao(SIG := NOT #M_HABILITADO,
+	                   SD_1 := #TEXTO_ALARME,
+	                   SD_2 := #AREA_ALARME,
+	                   SD_5 := "DB_USER_NAME".USER_NAME,
+	                   SD_6 := "DB_USER_NAME".LOCAL_MACHINE);
+	
+	//EMERGÂNCIA ACIONADA
+	#Evento_Emergencia(SIG := NOT #EMERGENCIA,
+	                   SD_1 := #TEXTO_ALARME,
+	                   SD_2 := #AREA_ALARME,
+	                   SD_5 := "DB_USER_NAME".USER_NAME,
+	                   SD_6 := "DB_USER_NAME".LOCAL_MACHINE);
+	
+	
+	(*********************************************************
+	Network 23: Eventos para Supervisório Setpoint Alterado
+	**********************************************************) 
+	
+	#Evento_Tp_Monitoracao(SIG := #Op_Tp_Falha_Ult_Valor <> #HmiData.Op_Tp_Falha,
+	                       SD_1 := #TEXTO_ALARME,
+	                       SD_2 := #AREA_ALARME,
+	                       SD_3 := #HmiData.Op_Tp_Falha,
+	                       SD_4 := #Op_Tp_Falha_Ult_Valor,
+	                       SD_5 := "DB_USER_NAME".USER_NAME,
+	                       SD_6 := "DB_USER_NAME".LOCAL_MACHINE);
+	
+	#Evento_Tp_Simulacao(SIG := #Op_Tp_Sim_Ult_Valor <> #HmiData.Op_Tp_Indicacao_Sim,
+	                     SD_1 := #TEXTO_ALARME,
+	                     SD_2 := #AREA_ALARME,
+	                     SD_3 := #HmiData.Op_Tp_Indicacao_Sim,
+	                     SD_4 := #Op_Tp_Sim_Ult_Valor,
+	                     SD_5 := "DB_USER_NAME".USER_NAME,
+	                     SD_6 := "DB_USER_NAME".LOCAL_MACHINE);
+	
+	(*********************************************************
+	Network 24: Falhas para Supervisório
+	**********************************************************) 
+	//FALHA NA PARTIDA
+	#Falha_Partida(SIG := #M_FALHA_PARTIDA,
+	               SD_1 := #TEXTO_ALARME,
+	               SD_2 := #AREA_ALARME,
+	               SD_5 := "DB_USER_NAME".USER_NAME,
+	               SD_6 := "DB_USER_NAME".LOCAL_MACHINE);
+	
+	//FALHA NA PARADA
+	#Falha_Parada(SIG := #M_FALHA_PARADA,
+	              SD_1 := #TEXTO_ALARME,
+	              SD_2 := #AREA_ALARME,
+	              SD_5 := "DB_USER_NAME".USER_NAME,
+	              SD_6 := "DB_USER_NAME".LOCAL_MACHINE);
+	
+	//FALHA DE SOBRECARGA
+	#Falha_Sobrecarga(SIG := #M_FALHA_SOBRECARGA,
+	                  SD_1 := #TEXTO_ALARME,
+	                  SD_2 := #AREA_ALARME,
+	                  SD_5 := "DB_USER_NAME".USER_NAME,
+	                  SD_6 := "DB_USER_NAME".LOCAL_MACHINE);
+	
+	//FALHA DE SOBRECARGA
+	#Falha_Externa(SIG := #M_FALHA_EXT,
+	               SD_1 := #TEXTO_ALARME,
+	               SD_2 := #AREA_ALARME,
+	               SD_5 := "DB_USER_NAME".USER_NAME,
+	               SD_6 := "DB_USER_NAME".LOCAL_MACHINE);
+	
+	//FALHA PROTEÇÃO TÉRMICA
+	#Falha_MPS(SIG := #M_FALHA_MPS,
+	           SD_1 := #TEXTO_ALARME,
+	           SD_2 := #AREA_ALARME,
+	           SD_5 := "DB_USER_NAME".USER_NAME,
+	           SD_6 := "DB_USER_NAME".LOCAL_MACHINE);
+	
+	
+	(**************************************************
+	 Network 22: Reset Palavra de Comando Supervisório
+	***************************************************)
+	IF #HmiData.Op_Dw_Cmd <> 0 THEN
+	    #HmiData.Op_Dw_Cmd := 0;
+	END_IF;
+	END_IF;
+	
+	(**********************************************************
+	 Network 23: Escreve Valores Atuais Memorias dos Eventos
+	***********************************************************)
+	#Op_Tp_Falha_Ult_Valor := #HmiData.Op_Tp_Falha;
+	#Op_Tp_Sim_Ult_Valor := #HmiData.Op_Tp_Indicacao_Sim;
+	
+	
+END_FUNCTION_BLOCK
+

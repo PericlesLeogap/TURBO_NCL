@@ -1,0 +1,654 @@
+﻿FUNCTION_BLOCK "FB_PID"
+{ S7_Optimized_Access := 'TRUE' }
+VERSION : 0.1
+   VAR_INPUT 
+      MODO_OP_SUP { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;   // Modo de Operação Entrada Bloco = 0/ Supervisório = 1
+      MODO_CONT_SUP { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // 1 = Habilita Modo de operação via Supervisório Local/Remoto
+      HAB_SP0 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;   // 1 = Habilita Setpoint 0 Via Supervisório
+      HAB_SP1 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // 1 = Habilita Setpoint 1 Via Supervisório
+      HAB_SP_MAN { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;   // 1 = Habilita Setpoint Manual Via Supervisório
+      SEL_PV_PER { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Seleciona Variavel de Processo =1 Periferia =0 Real
+      INV_PID { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Inverte Controle Pid =1
+      PAUSA_PID { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Pausa Controlador PID =1
+      INTER_AUTO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;   // 0 = Intertravamento Ativo Modo Automático
+      INTER_MAN { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;   // 0 = Intertravamento Ativo em Modo Manual
+      AUTO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Pulso Seleciona Modo de Operação Automático
+      MANUAL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Pulso Seleciona Modo de Operação Manual
+      REMOTO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Pulso Seleciona Modo de operação Remoto
+      LOCAL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Pulso Seleciona Modo de Operação Local
+      PV_INT { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int := 0;   // PV periferia
+      PV_REAL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 0.0;   // PV Real
+      SEL_SP { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int := 0;   // Seleciona Setpoint  0=SP0  1=SP1 2=SP2
+      SP0 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Setpoint Automático 0
+      SP1 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Setpoint Automático 1
+      SP2 { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Setpoint Automático 2
+      HI_LIM_PID { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 100.0;   // Limite Superior PID
+      LO_LIM_PID { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 0.0;   // Limite Inferior PID
+      HI_LIM_IN { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 100.0;   // Limite Superior Entrada Analógica
+      LO_LIM_IN { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 0.0;   // Limite Inferior Entrada Analógica
+      HI_LIM_SP { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 100.0;   // Limite Superior Setpoint
+      LO_LIM_SP { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 0.0;   // Limite Inferior Setpoint
+      SEL_P { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;   // Seleciona Controle Propocional =1
+      SEL_I { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;   // Seleciona Controle Integral =1
+      SEL_D { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Seleciona Controle Derivativa =1
+      G_P { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 2.0;   // Ganho Proporcional
+      G_I { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 20.0;   // Ganho Integral [s]
+      G_D { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 10.0;   // Ganho Derivada [s]
+      TM_LAG { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 20.0;
+      BANDA_MORTA { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 0.0;   // Faixa Morta do Controlador
+      SEL_FORCE { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Seleciona Force PID
+      FORCE_VAL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 0.0;   // Force Valor MV
+   END_VAR
+   VAR_INPUT RETAIN
+      SEL_RAMPA_SP { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := TRUE;   // Seleciona Rampa de Setpoint
+   END_VAR
+   VAR_INPUT 
+      VAL_INC_SP { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 1.0;   // Valor Incrementa Setpoint
+      DISV { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 0.0;   // Entrada Feedfoward
+      DESV_MAX_SP { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 10.0;   // Desvio Máximo de Setpoint [%]
+      HOLD { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real := 0.0;   // Move Valor Saída PID Desabilitado
+      TEXTO_ALARME { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : String[80];   // Texto para Alarme e Eventos
+      AREA_ALARME { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : String[20];   // Texto para Filtrar Alarmes da Area
+      UNIT { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : String[10];   // Unidade de Engenharia
+      RESTART { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Restart Cpu
+      INSTANCE { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : String[20];   // DB Instance
+   END_VAR
+
+   VAR_OUTPUT 
+      Q_MV_R { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Saída Variável Manipulada Real
+      Q_MV_I { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // Saída Variável Manipulada Inteiro
+      Q_P_SEL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Saída Controle Propporcional Selecionado
+      Q_I_SEL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Saída Controle Integral Selecionado
+      Q_D_SEL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Saída Controle Derivada Selecionado
+      Q_HAB_PID { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // PID Habilitado =1
+      Q_AUTO_MAN { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := false;   // Modo de operação em Automático = 1 Manual = 0
+      Q_LOC_REM { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := false;   // Modo de Operação em Remoto = 1 Local = 0
+      Q_FORCE_ON { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := false;   // Pid em Modo Force =1
+      Q_SEL_RAMPA_SP { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := false;   // Saída Rampa de Setpoint Selecionada = 1
+      Q_PID_LIM_HI { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := false;   // Saída Limite Máximo Pid Atingido
+      Q_PID_LIM_LO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := false;   // Saída Limite Minimo Pid Atingido
+      Q_A_DESV { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := false;   // Alarme Desvio de Setpoint
+      Q_SP_SEL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Saída Setpoint Selecionado
+      Q_PV { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Saída Variavel do Processo
+      Q_ERRO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Saída Erro entre SP e PV
+   END_VAR
+
+   VAR_IN_OUT 
+      SP_MAN { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Setpoint Manual
+   END_VAR
+
+   VAR RETAIN
+      HmiData : "pdt_PID_Auti" := ((), (), (), (), (), 0.5, 100.0, 0.0, 100.0, 0.0, 100.0, 0.0, 2.0, 20.0, 10.0, 20.0, (), 0.0, (), 0.0, (), (), ());
+   END_VAR
+   VAR 
+      FB_PID_CONT_C {InstructionName := 'CONT_C'; LibVersion := '1.1'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : CONT_C;   // Bloco Pid Siemens "CONT_C"
+      RAMPA_SP_AUTO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "FB_RAMPA_PID";   // Rampa Setpoint
+      RAMPA_SP_FORCE { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : "FB_RAMPA_PID";   // Rampa Setpoint
+      HORA_ATUAL {InstructionName := 'DTL'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : DTL;   // Hora Atual do Sistema
+      HORA_SCAN_ANT {InstructionName := 'DTL'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : DTL;   // Hora do Scan Anterior
+      RET_SYS_TIME { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Int;   // Retorno Código de Erro Bloco "RD_SYS_T"
+      OB_SCAN { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Time;   // Tempo Execução OB Interrupt
+      G_I_T { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Time;   // Interno Converte Ganho Integral para Time
+      G_D_T { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Time;   // Interno Converte Ganho Derivada para Time
+      TM_LAG_T { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Time;
+      G_P_INV { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Interno Ganho Proporcional PID Invertido
+      M_SP0_SEL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Interno Setpoint Automático 0 Selecionado
+      M_SP1_SEL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Interno Setpoint Automático 1 Selecionado
+      M_SP2_SEL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Interno Setpoint Automático 2 Selecionado
+      M_SP_AUTO_SEL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Interno Setpoint Automatico Selecionado
+      M_SP_AUTO_RAMPA { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Interno Setpoint Automatico Saída da Rampa
+      M_SP_AUTO_PID { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Interno Setpoint Automatico PID
+      M_SP_MAN_SEL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Interno Setpoint Manual Selecionado
+      M_SP_MAN_PID { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Interno Setpoint Manual PID
+      M_SP_FORCE_RAMPA { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Interno Setpoint Force Saída da Rampa
+      M_INC_SP_RAMPA_SEL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Interno Setpoint Incrementa Rampa Selecionado
+      M_BANDA_MORTA_SEL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Interno Setpoint Incrementa Rampa Selecionado
+      M_HI_LIM_PID_SEL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Interno Limite Superior Pid Selecionado
+      M_LO_LIM_PID_SEL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Interno Limite Inferior Pid Selecionado
+      M_HI_LIM_SP_SEL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Interno Limite Superior Setpoint Automático Selecionado
+      M_LO_LIM_SP_SEL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Interno Limite Inferior Setpoint Automático Selecionado
+      M_G_P_SEL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Ganho Proporcional Selecionado
+      M_G_I_SEL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Ganho Integral Selecionado
+      M_G_D_SEL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Ganho Derivada Selecionado
+      M_G_TM_LAG_SEL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;
+      M_MV_R { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Interno Saída Controlador PID Real
+      M_PV { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Interno Saída PV
+      M_ERRO { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Interno Saída Erro Entre SP e PV
+      DESV_P { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Interno Desvio de Setpoint em Percentual
+      M_MV_I { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Word;   // Interno Saída Controlador  PID Inteiro
+   END_VAR
+   VAR RETAIN
+      M_AUTO_MAN { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Interno Modo de operação em Automático = 1 Manual = 0
+   END_VAR
+   VAR 
+      M_LOC_REM { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Interno Modo de Operação em Remoto = 1 Local = 0
+   END_VAR
+   VAR RETAIN
+      M_SEL_RAMPA_SP { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'True'} : Bool := TRUE;   // Interno Rampa de Setpoint Selecionada = 1
+      M_P_SEL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'True'} : Bool := TRUE;   // Interno Ganho Proporcional Ativo
+      M_I_SEL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'True'} : Bool := TRUE;   // Interno Ganho Integral Ativo
+      M_D_SEL { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'True'} : Bool := FALSE;   // Interno Ganho Derivada Ativo
+   END_VAR
+   VAR 
+      M_HAB_PID { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool;   // Interno PID Habilitado
+      M_A_DESV { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Bool := FALSE;   // Interno Alarme Desvio de Setpoint
+      Evento_Man_Auto {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Manual/Automático
+      Evento_Sel_Sp_Ext_Int {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Seleção Setpoint Externo/Interno
+      Evento_Hab_G_P {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Habilita/Desabilita Ganho Proporcional
+      Evento_Hab_G_I {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Habilita/Desabilita Ganho Integral
+      Evento_Hab_G_D {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Habilita/Desabilita Ganho Derivativo
+      Evento_Hab_Rampa_Sp {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Habilita/Desabilita Rampa de Setpoint
+      Evento_Lim_Max_Sp {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Limite Máximo de Setpoint
+      Evento_Lim_Min_Sp {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Limite Mínimo de Setpoint
+      Evento_Lim_Max_Mv {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Limite Máximo Variável Manipulada
+      Evento_Lim_Min_Mv {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Limite Mínimo Variável Manipulada
+      Evento_Sp_Ganho_P {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Setpoint Ganho Proporcional
+      Evento_Sp_Ganho_I {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Setpoint Ganho Integral
+      Evento_Sp_Ganho_D {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Setpoint Ganho Derivativo
+      Evento_Sp_Ganho_Tm_Lag {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Setpoint Tm-Lag
+      Evento_Sp_Banda_Morta {InstructionName := 'Program_Alarm'; LibVersion := '1.0'; ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'; S7_SetPoint := 'False'} : Program_Alarm;   // Bloco Program_Alarm Evento Setpoint Banda Morta
+   END_VAR
+   VAR RETAIN
+      Op_Lim_Max_Sp_Ult_Valor { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Limite Máximo de Setpoint Ultimo Valor
+      Op_Lim_Min_Sp_Ult_Valor { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Limite Minimo de Setpoint Ultimo Valor
+      Op_Lim_Max_Mv_Ult_Valor { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Limite Máximo Variável Manipulada Ultimo Valor
+      Op_Lim_Min_Mv_Ult_Valor { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Limite Mínimo Variável Manipulada Ultimo Valor
+      Op_Sp_Ganho_P_Ult_Valor { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Setpoint Ganho Proporcional Ultimo Valor
+      Op_Sp_Ganho_I_Ult_Valor { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Setpoint Ganho Integral Ultimo Valor
+      Op_Sp_Ganho_D_Ult_Valor { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Setpoint Danho Derivativo Ultimo Valor
+      Op_Sp_Ganho_Tm_Lag_Ult_Valor { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Setpoint Ganho Tm_Lag Ultimo Valor
+      Op_Sp_Banda_Morta_Ult_Valor { ExternalAccessible := 'False'; ExternalVisible := 'False'; ExternalWritable := 'False'} : Real;   // Setpoint banda Morta Ultimo Valor
+   END_VAR
+
+
+BEGIN
+	(********************************
+	           Restart Cpu
+	*********************************)
+	IF #RESTART THEN
+	    #Q_MV_R := 0;
+	    #HmiData.Op_Dw_Cmd := 0;
+	ELSE
+	    
+	    // Cpu em Operação
+	
+	(******************************************
+	 Network 1: Tempo de Scan OB3X
+	*******************************************)
+	    #RET_SYS_TIME := RD_SYS_T(#HORA_ATUAL);
+	    //Diferença entre hora Atual e Ultimo Scan
+	    #OB_SCAN := T_DIFF(IN1 := #HORA_ATUAL, IN2 := #HORA_SCAN_ANT);
+	    //Escreve Hora Atual para Ultimo Scan
+	    #HORA_SCAN_ANT := #HORA_ATUAL;
+	
+	(*****************************************************************
+	  Network 16: Set Valores HMI ou PLC
+	******************************************************************)
+	    #M_HI_LIM_PID_SEL := #HI_LIM_PID;
+	    #M_LO_LIM_PID_SEL := #LO_LIM_PID;
+	    #M_HI_LIM_SP_SEL := #HI_LIM_SP;
+	    #M_LO_LIM_SP_SEL := #LO_LIM_SP;
+	    //#M_G_P_SEL := #G_P;
+	    #M_G_P_SEL := #HmiData.Op_G_P;
+	    //#M_G_I_SEL := #G_I;
+	    #M_G_I_SEL := #HmiData.Op_G_I;
+	    //#M_G_D_SEL := #G_D;
+	    #M_G_D_SEL := #HmiData.Op_G_D;
+	    #M_G_TM_LAG_SEL := #TM_LAG;
+	    #M_INC_SP_RAMPA_SEL := #VAL_INC_SP;
+	    #M_BANDA_MORTA_SEL := #BANDA_MORTA;
+	    
+	(*********************************************************
+	 Network 1: Limites Máximo e Minimo Setpoint
+	**********************************************************)    
+	    #M_SP0_SEL := LIMIT(MN := #LO_LIM_SP, IN := #SP0, MX := #HI_LIM_SP);
+	    #M_SP1_SEL := LIMIT(MN := #LO_LIM_SP, IN := #SP1, MX := #HI_LIM_SP);
+	    #M_SP2_SEL := LIMIT(MN := #LO_LIM_SP, IN := #SP2, MX := #HI_LIM_SP);
+	    #M_SP_MAN_SEL := LIMIT(MN := #LO_LIM_PID, IN := #SP_MAN, MX := #HI_LIM_PID);
+	        
+	(*************************************************************************
+	 Network 7: Seleção de Setpoint Manual Supervisório/Entrada do Bloco
+	**************************************************************************)
+	        IF #SEL_FORCE = TRUE AND #M_SEL_RAMPA_SP = FALSE THEN
+	            #M_SP_MAN_SEL := #FORCE_VAL;
+	            #SP_MAN := #FORCE_VAL;
+	        ELSIF #SEL_FORCE = TRUE AND #M_SEL_RAMPA_SP = TRUE THEN
+	            #M_SP_MAN_SEL := #M_SP_FORCE_RAMPA;
+	            #SP_MAN := #M_SP_FORCE_RAMPA;
+	        ELSIF (#M_AUTO_MAN = TRUE AND #INTER_AUTO = FALSE) OR (#M_AUTO_MAN = FALSE AND #INTER_MAN = FALSE) THEN
+	            #M_SP_MAN_SEL := #HOLD;
+	            #SP_MAN := #HOLD;
+	        ELSIF #HAB_SP_MAN = TRUE AND #M_AUTO_MAN = FALSE THEN
+	            #M_SP_MAN_SEL := #M_SP_MAN_SEL;
+	        ELSIF #M_AUTO_MAN = TRUE THEN
+	            #M_SP_MAN_SEL := #M_MV_R;
+	            #SP_MAN := #M_MV_R;
+	        END_IF;
+	        
+	(**********************************************
+	 Network 11: Seleção de Setpoint Automático 
+	***********************************************)
+	        IF #M_LOC_REM = FALSE THEN
+	            IF #SEL_SP = 0 THEN
+	                #M_SP_AUTO_SEL := #M_SP0_SEL;
+	            ELSIF #SEL_SP = 1 THEN
+	                #M_SP_AUTO_SEL := #M_SP1_SEL;
+	            END_IF;
+	        ELSE
+	            #M_SP_AUTO_SEL := #SP2;
+	        END_IF;
+	        
+	(******************************************
+	 Network 2: Modo de Operação Manual/Automático
+	 Variável: OPdwCmd  Bit:  16  =  Manual
+	 Variável: OPdwCmd  Bit:  17  =  Automático
+	*******************************************)
+	    IF (#AUTO) OR (#HmiData.Op_Dw_Cmd.%X17 = TRUE AND #HAB_SP_MAN = TRUE) THEN
+	        #M_AUTO_MAN := TRUE;
+	    ELSIF (#MANUAL) OR (#HmiData.Op_Dw_Cmd.%X16 = TRUE AND #HAB_SP_MAN = TRUE) THEN
+	        #M_AUTO_MAN := FALSE;
+	    END_IF;
+	    
+	(******************************************
+	 Network 3: Modo de Controle : Local/Remoto
+	 Variável: OPdwCmd  Bit:  18  =  Local
+	 Variável: OPdwCmd  Bit:  19  =  Remoto
+	*******************************************)
+	    IF (#REMOTO) OR (#HmiData.Op_Dw_Cmd.%X19 = TRUE AND #MODO_CONT_SUP = TRUE) THEN
+	        #M_LOC_REM := TRUE;
+	    ELSIF (#LOCAL) OR (#HmiData.Op_Dw_Cmd.%X18 = TRUE AND #MODO_CONT_SUP = TRUE) THEN
+	        #M_LOC_REM := FALSE;
+	    END_IF;
+	    
+	(******************************************
+	  Network 4: Seleciona Ganho Proporcional
+	  Variável: OPdwCmd  Bit:  0 Seleciona
+	  Variável: OPdwCmd  Bit:  1 Deseleciona
+	*******************************************)
+	    IF (#MODO_OP_SUP = FALSE AND #SEL_P = TRUE) OR (#HmiData.Op_Dw_Cmd.%X0 = TRUE AND #MODO_OP_SUP = TRUE) THEN
+	        #M_P_SEL := TRUE;
+	    ELSIF (#MODO_OP_SUP = FALSE AND #SEL_P = FALSE) OR (#HmiData.Op_Dw_Cmd.%X1 = TRUE AND #MODO_OP_SUP = TRUE) THEN
+	        #M_P_SEL := FALSE;
+	    END_IF;
+	    
+	(******************************************
+	  Network 5: Seleciona Ganho Integral
+	  Variável: OPdwCmd  Bit:  2 Seleciona
+	  Variável: OPdwCmd  Bit:  3 Deseleciona
+	*******************************************)
+	    IF (#MODO_OP_SUP = FALSE AND #SEL_I = TRUE) OR (#HmiData.Op_Dw_Cmd.%X2 = TRUE AND #MODO_OP_SUP = TRUE) THEN
+	        #M_I_SEL := TRUE;
+	    ELSIF (#MODO_OP_SUP = FALSE AND #SEL_I = FALSE) OR (#HmiData.Op_Dw_Cmd.%X3 = TRUE AND #MODO_OP_SUP = TRUE) THEN
+	        #M_I_SEL := FALSE;
+	    END_IF;
+	
+	(******************************************
+	  Network 6: Seleciona Ganho Derivada
+	  Variável: OPdwCmd  Bit:  4 Seleciona
+	  Variável: OPdwCmd  Bit:  5 Deseleciona
+	*******************************************)
+	    IF (#MODO_OP_SUP = FALSE AND #SEL_D = TRUE) OR (#HmiData.Op_Dw_Cmd.%X4 = TRUE AND #MODO_OP_SUP = TRUE) THEN
+	        #M_D_SEL := TRUE;
+	    ELSIF (#MODO_OP_SUP = FALSE AND #SEL_D = FALSE) OR (#HmiData.Op_Dw_Cmd.%X5 = TRUE AND #MODO_OP_SUP = TRUE) THEN
+	        #M_D_SEL := FALSE;
+	    END_IF;
+	
+	(******************************************
+	  Network 7: Seleciona Rampa de Setpoint
+	  Variável: OPdwCmd  Bit:  6 Seleciona
+	  Variável: OPdwCmd  Bit:  7 Deseleciona
+	*******************************************)
+	    IF (#MODO_OP_SUP = FALSE AND #SEL_RAMPA_SP = TRUE) OR (#HmiData.Op_Dw_Cmd.%X6 = TRUE AND #MODO_OP_SUP = TRUE) THEN
+	        #M_SEL_RAMPA_SP := TRUE;
+	    ELSIF (#MODO_OP_SUP = FALSE AND #SEL_RAMPA_SP = FALSE) OR (#HmiData.Op_Dw_Cmd.%X7 = TRUE AND #MODO_OP_SUP = TRUE) THEN
+	        #M_SEL_RAMPA_SP := FALSE;
+	    END_IF;
+	
+	(**********************************************
+	 Network 12: Rampa PID Setpoint Automático
+	***********************************************)
+	    #RAMPA_SP_AUTO(HAB_RAMPA := #M_SEL_RAMPA_SP AND #M_AUTO_MAN AND #INTER_AUTO AND NOT #SEL_FORCE,
+	                   IN := #M_SP_AUTO_SEL,
+	                   LU := SEL(G := NOT #M_SEL_RAMPA_SP AND #INTER_AUTO, IN0 := #M_HI_LIM_SP_SEL, IN1 := #M_SP_AUTO_SEL),
+	                   LL := SEL(G := #M_SEL_RAMPA_SP AND NOT #INTER_AUTO, IN0 :=  #M_LO_LIM_SP_SEL, IN1 := #M_PV),
+	                   INC_RAMPA := #M_INC_SP_RAMPA_SEL,
+	                   SET_LU := NOT #M_SEL_RAMPA_SP AND #INTER_AUTO,
+	                   SET_LL := #M_SEL_RAMPA_SP AND NOT #INTER_AUTO,
+	                   RESET := #RESTART,
+	                   OUT => #M_SP_AUTO_PID);
+	
+	(**********************************************
+	 Network 13: Rampa PID Setpoint Force
+	***********************************************)
+	    #RAMPA_SP_FORCE(HAB_RAMPA := #M_SEL_RAMPA_SP AND #SEL_FORCE,
+	                    IN := #FORCE_VAL,
+	                    LU := SEL(G := #RAMPA_SP_FORCE.HAB_RAMPA, IN0 := #M_MV_R, IN1 := #M_HI_LIM_SP_SEL),
+	                    LL := #M_LO_LIM_SP_SEL,
+	                    INC_RAMPA := #M_INC_SP_RAMPA_SEL,
+	                    SET_LU := NOT #RAMPA_SP_FORCE.HAB_RAMPA,
+	                    SET_LL := FALSE,
+	                    RESET := #RESTART,
+	                    OUT => #M_SP_FORCE_RAMPA);
+	    
+	(******************************************
+	  Network 7: Converte Ganhos PID
+	*******************************************)    
+	    #G_I_T := REAL_TO_DINT(#M_G_I_SEL * 1000.0);
+	    #G_D_T := REAL_TO_DINT(#M_G_D_SEL * 1000.0);
+	    #TM_LAG_T := REAL_TO_DINT(#M_G_TM_LAG_SEL * 1000.0);
+	    
+	(******************************************
+	  Network 8: Inverte PID
+	*******************************************)
+	    IF #INV_PID = TRUE THEN
+	        #G_P_INV := (#M_G_P_SEL * -1.0);
+	    ELSE
+	        #G_P_INV := #M_G_P_SEL;
+	    END_IF;
+	    
+	(**********************************************
+	 Network 9: PID Habilitado
+	***********************************************)
+	    IF #M_AUTO_MAN = TRUE THEN
+	        IF #INTER_AUTO = TRUE THEN
+	            #M_HAB_PID := TRUE;
+	        ELSE
+	            #M_HAB_PID := FALSE;
+	        END_IF;
+	    ELSE
+	        IF #INTER_MAN = TRUE THEN
+	            #M_HAB_PID := TRUE;
+	        ELSE
+	            #M_HAB_PID := FALSE;
+	        END_IF;
+	    END_IF;
+	    
+	(******************************************
+	 Network 14: Chamada Bloco PID Siemens CONT_C
+	*******************************************)
+	    #FB_PID_CONT_C(COM_RST := #RESTART,
+	                   MAN_ON := NOT #M_HAB_PID OR NOT #M_AUTO_MAN OR #SEL_FORCE,
+	                   PVPER_ON := #SEL_PV_PER,
+	                   P_SEL := #M_P_SEL,
+	                   I_SEL := #M_I_SEL,
+	                   INT_HOLD := #PAUSA_PID,
+	                   I_ITL_ON := FALSE,
+	                   D_SEL := #M_D_SEL,
+	                   CYCLE := (#OB_SCAN),
+	                   SP_INT := #M_SP_AUTO_PID,
+	                   PV_IN := #PV_REAL,
+	                   PV_PER := (INT_TO_WORD(#PV_INT)),
+	                   MAN := #M_SP_MAN_SEL,
+	                   GAIN := #G_P_INV,
+	                   TI := #G_I_T,
+	                   TD := #G_D_T,
+	                   TM_LAG := #TM_LAG_T,
+	                   DEADB_W := #BANDA_MORTA,
+	                   LMN_HLM := #M_HI_LIM_PID_SEL,
+	                   LMN_LLM := #M_LO_LIM_PID_SEL,
+	                   PV_FAC := (#HI_LIM_IN / 100.0),
+	                   PV_OFF := (#LO_LIM_IN / 100.0),
+	                   LMN_FAC := 1.0,
+	                   LMN_OFF := 0.0,
+	                   I_ITLVAL := 0.0,
+	                   DISV := #DISV,
+	                   LMN => #M_MV_R,
+	                   LMN_PER => #M_MV_I,
+	                   QLMN_HLM => #Q_PID_LIM_HI,
+	                   QLMN_LLM => #Q_PID_LIM_LO,
+	                   PV => #M_PV,
+	                   ER => #M_ERRO);
+	    
+	(*****************************************************************
+	  Network 17: Escreve Memorias Internas para Saídas
+	******************************************************************)
+	    #Q_MV_R := #M_MV_R;
+	    #Q_MV_I := WORD_TO_INT(#M_MV_I);
+	    #Q_P_SEL := #M_P_SEL;
+	    #Q_I_SEL := #M_I_SEL;
+	    #Q_D_SEL := #M_D_SEL;
+	    #Q_HAB_PID := #M_HAB_PID;
+	    #Q_AUTO_MAN := #M_AUTO_MAN;
+	    #Q_LOC_REM := #M_LOC_REM;
+	    #Q_FORCE_ON := #SEL_FORCE;
+	    #Q_SEL_RAMPA_SP := #M_SEL_RAMPA_SP;
+	    #Q_A_DESV := #M_A_DESV;
+	    #Q_SP_SEL := #M_SP_AUTO_PID;
+	    #Q_PV := #M_PV;
+	    #Q_ERRO := #M_ERRO;
+	    
+	(*****************************************************************
+	  Network 18: Desvio de Setpoint Percentual
+	******************************************************************)
+	    #DESV_P := (#DESV_MAX_SP * #M_SP_AUTO_PID) / 100.0;
+	    
+	(*****************************************************************
+	  Network 19: Alarme Desvio de Setpoint
+	******************************************************************)
+	    IF #M_HAB_PID = TRUE AND #M_AUTO_MAN = TRUE AND (#M_ERRO > #DESV_P) OR (#M_ERRO < (#DESV_P * -1.0)) THEN
+	        #M_A_DESV := TRUE;
+	    ELSE
+	        #M_A_DESV := FALSE;
+	    END_IF;
+	    
+	(*****************************************************************
+	  Network 20: Status Bit IHM
+	******************************************************************)
+	    IF #MODO_OP_SUP = FALSE THEN
+	        #HmiData.Op_Hi_Lim_Pid := #M_HI_LIM_PID_SEL;
+	        #HmiData.Op_Lo_Lim_Pid := #M_LO_LIM_PID_SEL;
+	        #HmiData.Op_Hi_Lim_Sp := #M_HI_LIM_SP_SEL;
+	        #HmiData.Op_Lo_Lim_Sp := #M_LO_LIM_SP_SEL;
+	        #HmiData.Op_G_P := #M_G_P_SEL;
+	        #HmiData.Op_G_I := #M_G_I_SEL;
+	        #HmiData.Op_G_D := #M_G_D_SEL;
+	        #HmiData.Op_G_Tm_Lag := #M_G_TM_LAG_SEL;
+	        #HmiData.Op_Rampa_Sp := #M_INC_SP_RAMPA_SEL;
+	        #HmiData.Op_Banda_Morta := #M_BANDA_MORTA_SEL;
+	    END_IF;
+	    
+	    #HmiData.Unit := #UNIT;
+	    #HmiData.Instance := #INSTANCE;
+	    #HmiData.Op_Hi_Lim_In := #HI_LIM_IN;
+	    #HmiData.Op_Lo_Lim_In := #LO_LIM_IN;
+	    #HmiData.Op_Sp0_Auto := #SP0;
+	    #HmiData.Q_SP_Sel := #Q_SP_SEL;
+	    #HmiData.Q_PV := #Q_PV;
+	    #HmiData.Q_MV_R := #Q_MV_R;
+	    
+	    #HmiData.QdwStatus.%X0 := #MODO_OP_SUP;
+	    #HmiData.QdwStatus.%X1 := #MODO_CONT_SUP;
+	    #HmiData.QdwStatus.%X2 := #HAB_SP0;
+	    #HmiData.QdwStatus.%X3 := #HAB_SP1;
+	    #HmiData.QdwStatus.%X4 := #HAB_SP_MAN;
+	    #HmiData.QdwStatus.%X5 := #Q_PID_LIM_HI;
+	    #HmiData.QdwStatus.%X6 := #Q_PID_LIM_LO;
+	    #HmiData.QdwStatus.%X7 := #SEL_FORCE;
+	    #HmiData.QdwStatus.%X8 := FALSE;
+	    #HmiData.QdwStatus.%X9 := FALSE;
+	    #HmiData.QdwStatus.%X10 := #M_AUTO_MAN;
+	    #HmiData.QdwStatus.%X11 := #M_LOC_REM;
+	    #HmiData.QdwStatus.%X12 := NOT #M_HAB_PID;
+	    #HmiData.QdwStatus.%X13 := FALSE;
+	    #HmiData.QdwStatus.%X14 := FALSE;
+	    #HmiData.QdwStatus.%X15 := FALSE;
+	    #HmiData.QdwStatus.%X16 := #M_P_SEL;
+	    #HmiData.QdwStatus.%X17 := #M_I_SEL;
+	    #HmiData.QdwStatus.%X18 := #M_D_SEL;
+	    #HmiData.QdwStatus.%X19 := #M_SEL_RAMPA_SP;
+	    #HmiData.QdwStatus.%X20 := FALSE;
+	    #HmiData.QdwStatus.%X21 := FALSE;
+	    #HmiData.QdwStatus.%X22 := FALSE;
+	    #HmiData.QdwStatus.%X23 := FALSE;
+	    #HmiData.QdwStatus.%X24 := #M_A_DESV;
+	    #HmiData.QdwStatus.%X25 := FALSE;
+	    #HmiData.QdwStatus.%X26 := FALSE;
+	    #HmiData.QdwStatus.%X27 := FALSE;
+	    #HmiData.QdwStatus.%X28 := FALSE;
+	    #HmiData.QdwStatus.%X29 := FALSE;
+	    #HmiData.QdwStatus.%X30 := FALSE;
+	    #HmiData.QdwStatus.%X31 := #HAB_SP0 AND #HAB_SP1;
+	    
+	
+	(*********************************************************
+	Network 22: Eventos para Supervisório
+	**********************************************************) 
+	    
+	//EVENTO COMANDO MANUAL
+	#Evento_Man_Auto(SIG := NOT #M_AUTO_MAN,
+	                 SD_1 := #TEXTO_ALARME,
+	                 SD_2 := #AREA_ALARME,
+	                 SD_5 := "S0231_USER".USER_NAME,
+	                 SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	
+	//EVENTO SELEÇÃO DE SETPOINT INTERNO/EXTERNO
+	#Evento_Sel_Sp_Ext_Int(SIG := #M_LOC_REM,
+	                       SD_1 := #TEXTO_ALARME,
+	                       SD_2 := #AREA_ALARME,
+	                       SD_5 := "S0231_USER".USER_NAME,
+	                       SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	//EVENTO DESABILITA GANHO PROPORCIONAL
+	#Evento_Hab_G_P(SIG := NOT #M_P_SEL,
+	                SD_1 := #TEXTO_ALARME,
+	                SD_2 := #AREA_ALARME,
+	                SD_5 := "S0231_USER".USER_NAME,
+	                SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	//EVENTO DESABILITA GANHO INTEGRAL
+	#Evento_Hab_G_I(SIG := NOT #M_I_SEL,
+	                SD_1 := #TEXTO_ALARME,
+	                SD_2 := #AREA_ALARME,
+	                SD_5 := "S0231_USER".USER_NAME,
+	                SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	
+	//EVENTO DESABILITA GANHO DERIVATIVO
+	#Evento_Hab_G_D(SIG := NOT #M_D_SEL,
+	                SD_1 := #TEXTO_ALARME,
+	                SD_2 := #AREA_ALARME,
+	                SD_5 := "S0231_USER".USER_NAME,
+	                SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	//EVENTO DESABILITA RAMPA DE SETPOINT
+	#Evento_Hab_Rampa_Sp(SIG := NOT #M_SEL_RAMPA_SP,
+	                     SD_1 := #TEXTO_ALARME,
+	                     SD_2 := #AREA_ALARME,
+	                     SD_5 := "S0231_USER".USER_NAME,
+	                     SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	(*********************************************************
+	Network 23: Eventos para Supervisório Setpoint Alterado
+	**********************************************************) 
+	
+	//SETPOINT LIMITE MÁXIMO DE SETPOINT ALTERADO
+	#Evento_Lim_Max_Sp(SIG := #Op_Lim_Max_Sp_Ult_Valor <> #HmiData.Op_Hi_Lim_Pid,
+	                   SD_1 := #TEXTO_ALARME,
+	                   SD_2 := #AREA_ALARME,
+	                   SD_3 := #HmiData.Op_Hi_Lim_Pid,
+	                   SD_4 := #Op_Lim_Max_Sp_Ult_Valor,
+	                   SD_5 := "S0231_USER".USER_NAME,
+	                   SD_6 := "S0231_USER".LOCAL_MACHINE,
+	                   SD_7 := #UNIT);
+	
+	//SETPOINT LIMITE MÍNIMO DE SETPOINT ALTERADO
+	#Evento_Lim_Min_Sp(SIG := #Op_Lim_Min_Sp_Ult_Valor <> #HmiData.Op_Lo_Lim_Sp,
+	                   SD_1 := #TEXTO_ALARME,
+	                   SD_2 := #AREA_ALARME,
+	                   SD_3 := #HmiData.Op_Lo_Lim_Sp,
+	                   SD_4 := #Op_Lim_Min_Sp_Ult_Valor,
+	                   SD_5 := "S0231_USER".USER_NAME,
+	                   SD_6 := "S0231_USER".LOCAL_MACHINE,
+	                   SD_7 := #UNIT);
+	
+	//SETPOINT LIMITE MÁXIMO MV ALTERADO
+	#Evento_Lim_Max_Mv(SIG := #Op_Lim_Max_Mv_Ult_Valor <> #HmiData.Op_Hi_Lim_Pid,
+	                   SD_1 := #TEXTO_ALARME,
+	                   SD_2 := #AREA_ALARME,
+	                   SD_3 := #HmiData.Op_Hi_Lim_Pid,
+	                   SD_4 := #Op_Lim_Max_Mv_Ult_Valor,
+	                   SD_5 := "S0231_USER".USER_NAME,
+	                   SD_6 := "S0231_USER".LOCAL_MACHINE,
+	                   SD_7 := #UNIT);
+	
+	//SETPOINT LIMITE MÍNIMO MV ALTERADO
+	#Evento_Lim_Min_Mv(SIG := #Op_Lim_Min_Mv_Ult_Valor <> #HmiData.Op_Lo_Lim_Pid,
+	                   SD_1 := #TEXTO_ALARME,
+	                   SD_2 := #AREA_ALARME,
+	                   SD_3 := #HmiData.Op_Lo_Lim_Pid,
+	                   SD_4 := #Op_Lim_Min_Mv_Ult_Valor,
+	                   SD_5 := "S0231_USER".USER_NAME,
+	                   SD_6 := "S0231_USER".LOCAL_MACHINE,
+	                   SD_7 := #UNIT);
+	
+	//SETPOINT GANHO PROPORCIONAL ALTERADO
+	#Evento_Sp_Ganho_P(SIG := #Op_Sp_Ganho_P_Ult_Valor <> #HmiData.Op_G_P,
+	                   SD_1 := #TEXTO_ALARME,
+	                   SD_2 := #AREA_ALARME,
+	                   SD_3 := #HmiData.Op_G_P,
+	                   SD_4 := #Op_Sp_Ganho_P_Ult_Valor,
+	                   SD_5 := "S0231_USER".USER_NAME,
+	                   SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	//SETPOINT GANHO INTEGRAL ALTERADO
+	#Evento_Sp_Ganho_I(SIG := (#Op_Sp_Ganho_I_Ult_Valor <> #HmiData.Op_G_I),
+	                   SD_1 := #TEXTO_ALARME,
+	                   SD_2 := #AREA_ALARME,
+	                   SD_3 := #HmiData.Op_G_I,
+	                   SD_4 := #Op_Sp_Ganho_I_Ult_Valor,
+	                   SD_5 := "S0231_USER".USER_NAME,
+	                   SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	//SETPOINT GANHO DERIVATIVO ALTERADO
+	#Evento_Sp_Ganho_D(SIG := #Op_Sp_Ganho_D_Ult_Valor <> #HmiData.Op_G_D,
+	                   SD_1 := #TEXTO_ALARME,
+	                   SD_2 := #AREA_ALARME,
+	                   SD_3 := #HmiData.Op_G_D,
+	                   SD_4 := #Op_Sp_Ganho_D_Ult_Valor,
+	                   SD_5 := "S0231_USER".USER_NAME,
+	                   SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	//SETPOINT TM-LAG ALTERADO
+	#Evento_Sp_Ganho_Tm_Lag(SIG := #Op_Sp_Ganho_Tm_Lag_Ult_Valor <> #HmiData.Op_G_Tm_Lag,
+	                        SD_1 := #TEXTO_ALARME,
+	                        SD_2 := #AREA_ALARME,
+	                        SD_3 := #HmiData.Op_G_Tm_Lag,
+	                        SD_4 := #Op_Sp_Ganho_Tm_Lag_Ult_Valor,
+	                        SD_5 := "S0231_USER".USER_NAME,
+	                        SD_6 := "S0231_USER".LOCAL_MACHINE);
+	
+	//SETPOINT BANDA MORTA
+	#Evento_Sp_Banda_Morta(SIG := #Op_Sp_Ganho_Tm_Lag_Ult_Valor <> #HmiData.Op_Banda_Morta,
+	                       SD_1 := #TEXTO_ALARME,
+	                       SD_2 := #AREA_ALARME,
+	                       SD_3 := #HmiData.Op_Banda_Morta,
+	                       SD_4 := #Op_Sp_Ganho_Tm_Lag_Ult_Valor,
+	                       SD_5 := "S0231_USER".USER_NAME,
+	                       SD_6 := "S0231_USER".LOCAL_MACHINE,
+	                       SD_7 := #UNIT);
+	
+	(**********************************************************
+	Network 26: Escreve Valores Atuais Memorias dos Eventos
+	***********************************************************)
+	#Op_Lim_Max_Sp_Ult_Valor := #HmiData.Op_Hi_Lim_Sp;
+	#Op_Lim_Min_Sp_Ult_Valor := #HmiData.Op_Lo_Lim_Sp;
+	#Op_Lim_Max_Mv_Ult_Valor := #HmiData.Op_Hi_Lim_Pid;
+	#Op_Lim_Min_Mv_Ult_Valor := #HmiData.Op_Lo_Lim_Pid;
+	#Op_Sp_Ganho_P_Ult_Valor := #HmiData.Op_G_P;
+	#Op_Sp_Ganho_I_Ult_Valor := #HmiData.Op_G_I;
+	#Op_Sp_Ganho_D_Ult_Valor := #HmiData.Op_G_D;
+	#Op_Sp_Ganho_Tm_Lag_Ult_Valor := #HmiData.Op_G_Tm_Lag;
+	#Op_Sp_Banda_Morta_Ult_Valor := #HmiData.Op_Banda_Morta;
+	
+	(**************************************************
+	Network 27: Reset Palavra de Comando Supervisório
+	***************************************************)
+	IF #HmiData.Op_Dw_Cmd <> 0 THEN
+	    #HmiData.Op_Dw_Cmd := 0;
+	END_IF;
+	
+	END_IF;
+	    
+END_FUNCTION_BLOCK
+
