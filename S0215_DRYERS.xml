@@ -2,7 +2,7 @@
 <Document>
   <Engineering version="V17" />
   <DocumentInfo>
-    <Created>2022-06-27T13:56:30.8990994Z</Created>
+    <Created>2022-06-28T12:36:53.6494239Z</Created>
     <ExportSetting>WithDefaults</ExportSetting>
     <InstalledProducts>
       <Product>
@@ -62,8 +62,8 @@
       <IsRetainMemResEnabled>false</IsRetainMemResEnabled>
       <MemoryLayout>Optimized</MemoryLayout>
       <MemoryReserve>100</MemoryReserve>
-      <Name>S0215_DRYERS</Name>
-      <Number>215</Number>
+      <Name>S02151_DRYER</Name>
+      <Number>2151</Number>
       <ProgrammingLanguage>LAD</ProgrammingLanguage>
       <SetENOAutomatically>false</SetENOAutomatically>
       <UDABlockProperties />
